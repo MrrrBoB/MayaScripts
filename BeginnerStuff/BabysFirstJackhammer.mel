@@ -1,0 +1,31 @@
+//Create Bit
+polyCube -w .5 -h 1 -d .25 -sx 1 -sy 1 -sz .1 -ax 0 1 0 -cuv 4 -ch 1;
+select -r pCube1.f[1] ;
+scale -r -p 0cm 0.5cm 0cm 3 1 1.5 ;
+polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1 -localScale .5 1 1 -localTranslate  0 0 1 -pvx 0 -pvy 0.5 -pvz 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness 0 -smoothingAngle 30 pCube1.f[1];
+polyExtrudeFacet -constructionHistory 1 -keepFacesTogether 1  -localTranslate  0 0 5 -pivotX 0 -pivotY 0.5 -pivotZ 0 -divisions 1 -twist 0 -taper 1 -off 0 -thickness 0 -smoothingAngle 30 pCube1.f[1];
+//Create Base
+polyCube -w 3 -h 5 -d 1.5 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -cuv 4 -ch 1;
+move -r 0 8 0 ;
+select -r pCube2.f[1] ;
+scale -r -p 0cm 0.5cm 0cm 1.15 1 1.15 ;
+//Create Handles
+polyCylinder -r .35 -h 3.5 -sx 20 -sy 6 -sz 1 -ax 0 1 0 -roundCap 0 -cuv 3 -ch 1;
+rotate -relative -objectSpace -fo 0 0 -90 ;
+select -r pCylinder1.e[73] ;
+select -add pCylinder1.e[60:79] ;
+softSelect -ssd 2 -sud 0.5 ;
+scale -r -p 0cm 0cm 0cm 0.75 1 0.75 ;
+//move handle
+select -r pCylinder1 ;
+move -r 3 9.5 0 ;
+polyMirrorFace -axisDirection 1;
+
+
+
+
+
+
+
+
+
