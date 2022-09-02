@@ -1,0 +1,29 @@
+float $headSize = 3.5;//this is the main scalar factor
+float $midSize = $headSize * 1.5;
+float $baseSize = $headSize * 2;
+float $headCenter = $baseSize*1.5 + $midSize*1.5+ $headSize;
+
+//base
+polySphere -r $baseSize -sx 20 -sy 20 -ax 0 1 0 -cuv 2 -ch 1;
+move -r -os -wd 0 $baseSize 0;
+//mid section
+polySphere -r $midSize -sx 20 -sy 20 -ax 0 1 0 -cuv 2 -ch 1;
+move -r -os -wd 0 ($midSize+$baseSize*1.5) 0;
+//head
+polySphere -r $headSize -sx 20 -sy 20 -ax 0 1 0 -cuv 2 -ch 1;
+move -r -os -wd 0 $headCenter 0;
+//eyes
+polySphere -r ($headSize/5) -sx 20 -sy 20 -ax 0 1 0 -cuv 2 -ch 1;
+move -r -os -wd ($headSize*.5) ($headCenter*1.05) ($headSize*.75);
+polyMirrorFace -axisDirection 1;
+//nose
+polyCone -r ($headSize/4) -h $headSize -sx 20 -sy 1 -sz 0 -ax 0 1 0 -rcp 0 -cuv 3 -ch 1;
+move -r -os -wd 0 ($headCenter) ($headSize*1.25);
+rotate -r -os -fo 90 0 0 ;
+//hat
+polyCone -r ($headSize*.75) -h ($headSize*2) -sx 20 -sy 1 -sz 0 -ax 0 1 0 -rcp 0 -cuv 3 -ch 1;
+move -r -os -wd ($headSize*.5) ($headCenter+$headSize*1.5) 0;
+rotate -r -os -fo 0 0 -17.5 ;
+
+
+
