@@ -1,0 +1,31 @@
+global proc float AddValues(float $val1, float $val2)
+{
+    return ($val1 + $val2);
+}
+global proc float SubtractValues(float $val1, float $val2)
+{
+    return ($val1 - $val2);
+}
+global proc float MultiplyValues(float $val1, float $val2)
+{
+    return ($val1 * $val2);
+}
+global proc float DivideValues(float $val1, float $val2)
+{
+    return ($val1 / $val2);
+}
+global proc Calculate(float $val1, string $op, float $val2)
+{
+    if ($op == "times"||$op == "multiply")
+    print(MultiplyValues($val1, $val2));
+    else if ($op == "divide"||$op=="over")
+    print(DivideValues($val1, $val2));
+    else if ($op == "plus"||$op=="add")
+    print(AddValues($val1, $val2));
+    else if ($op == "subtract"||$op=="minus")
+    print(DivideValues($val1, $val2));
+    else print("Incorrect information, please refer to manual");
+}
+
+print("I guess you can't do math, so you came to me.\n Fine. Give me a value, an operation (Add subtract multiply divide) and another value and I'll do your homework for you. \nCalculate(Value, Operation, Value);");
+//Calculate(7, "times", 7)
