@@ -16,6 +16,5 @@ proc CreatStairs(float $totalHeight, int $stepDensity, float $stepHeight, float 
         }
     polyCylinder -r $centerRadius -h $totalHeight -sx 20 -sy 1 -sz 1 -ax 0 1 0 -rcp 0 -cuv 3 -ch 1;
     move -r -os -wd 0 ($totalHeight/2) 0;
-    
 }
 CreatStairs(75, 1, .5, 10, 3, 15, 1);
