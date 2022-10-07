@@ -80,7 +80,11 @@ float $numList[] = {3, 2, 4, 3, 1, 2};
 
 global proc C_ButtonCmd()
 {
-    float $numList[];\
+    string $inputField=`optionVar -q "cNumberGrp"`;
+    
+    string $inputArrayString[] = stringToStringArray(`textField -q -text $inputField`, " ,/-");
+
+    print(stringArrayToString($inputArrayString, "**")); 
     //create array from value list
     
     //run the calculate command by taking values from the ui
@@ -99,12 +103,15 @@ global proc CalculatorUI()
                             -resizeToFitChildren 1
                             $mWindow`;
     string $mColumn = `columnLayout -parent $mWindow -adjustableColumn 1`; 
-        optionVar -stringValue "cNumberGrp" `floatFieldGrp -parent $mColumn -nf 4`;
+        optionVar -stringValue "cNumberGrp" `textField -parent $mColumn -placeholderText "Put numbers here"`;
         optionVar -stringValue "cOperation" `radioButtonGrp -parent $mColumn -numberOfRadioButtons 4 -labelArray4 "Add" "Subtract" "Multiply" "Divide"`;
-        button -parent $mColumn -label "Calculate" -command "";
+        button -parent $mColumn -label "Calculate" -command "C_ButtonCmd";
         optionVar -stringValue "cResultField" `textField -parent $mColumn -editable 0`;
 
     showWindow $mWindow;
 }
 
 CalculatorUI();
+
+
+
