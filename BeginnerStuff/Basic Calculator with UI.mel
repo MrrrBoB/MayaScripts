@@ -80,14 +80,23 @@ float $numList[] = {3, 2, 4, 3, 1, 2};
 
 global proc C_ButtonCmd()
 {
+    float $calculationArray[];
+
+    string $operationSelection = `optionVar -q "cOperation"`;
+    string $resultText = `optionVar -q "cResultField"`;
     string $inputField=`optionVar -q "cNumberGrp"`;
     
+    //converts the text field into a float array
     string $inputArrayString[] = stringToStringArray(`textField -q -text $inputField`, " ,/-");
-
-    print(stringArrayToString($inputArrayString, "**")); 
-    //create array from value list
-    
-    //run the calculate command by taking values from the ui
+    for($i = 0; $i<size($inputArrayString); $i++)
+    {
+        $calculationArray[$i]=$inputArrayString[$i];
+    }
+    //get selected button operation
+    string $selectedButton = `radioCollection -q -select $operationSelection`;
+    string $result = `radioButton -q -label $selectedbutton`;
+    //string $result = `Calculate(calculationArray, SELECTEDOPERATION)`;
+    textField -e -text $result $resultText; 
 
 }
 
@@ -104,9 +113,19 @@ global proc CalculatorUI()
                             $mWindow`;
     string $mColumn = `columnLayout -parent $mWindow -adjustableColumn 1`; 
         optionVar -stringValue "cNumberGrp" `textField -parent $mColumn -placeholderText "Put numbers here"`;
-        optionVar -stringValue "cOperation" `radioButtonGrp -parent $mColumn -numberOfRadioButtons 4 -labelArray4 "Add" "Subtract" "Multiply" "Divide"`;
+        //optionVar -stringValue "cOperation" `radioButtonGrp -parent $mColumn -numberOfRadioButtons 4 -labelArray4 "Add" "Subtract" "Multiply" "Divide"`;
+        optionVar -stringValue "cOperation" `radioCollection -parent $mColumn`;
+            string $rb1, $rb2, $rb3, $rb4, $rb5, $rb6, $rb7;
+                $rb1 =  `radioButton -cl "cOperation" -label "Add"`;  
+                $rb2 =  `radioButton -cl "cOperation" -label "Subtract"`;
+                $rb3 =  `radioButton -cl "cOperation" -label "Multiply"`;
+                $rb4 =  `radioButton -cl "cOperation" -label "Divide"`;
+                $rb5 =  `radioButton -cl "cOperation" -label "Average"`;
+                $rb6 =  `radioButton -cl "cOperation" -label "Exponent"`;
+                $rb7 =  `radioButton -cl "cOperation" -label "Median"`;
         button -parent $mColumn -label "Calculate" -command "C_ButtonCmd";
         optionVar -stringValue "cResultField" `textField -parent $mColumn -editable 0`;
+        
 
     showWindow $mWindow;
 }

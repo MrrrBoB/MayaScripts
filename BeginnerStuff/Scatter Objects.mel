@@ -1,0 +1,69 @@
+global proc Scatter(int $numD, float $x1, float $x2, float $y1, float $y2, float $z1, float $z2)
+{
+    float $xArray[] = {$x1, $x2};
+    float $yArray[] = {$y1, $y2};
+    float $zArray[] = {$z1, $z2};
+    $xArray = `sort $xArray`;
+    $yArray = `sort $yArray`;
+    $zArray = `sort $zArray`;
+    float $x;
+    float $y;
+    float $z;
+    string $selectionArray[] = `ls -sl`;
+    for ($item in $selectionArray)
+    {
+        select -r $item;
+        for ($i=0; $i<$numD; $i++)
+        {
+            $x=`rand $xArray[0] $xArray[1]`;
+            $y=`rand $yArray[0] $yArray[1]`;
+            $z=`rand $zArray[0] $zArray[1]`;
+            duplicate -rr;
+            move $x $y $z;
+        }
+    }
+}
+
+
+
+global proc S_ButtonCmd()
+{
+    //get the input fields
+    string $numDuplicates = `optionVar -q "duplicationCountFld"`;
+    string $xField = `optionVar -q "AxisXParams"`;
+    string $yField = `optionVar -q "AxisYParams"`;
+    string $zField = `optionVar -q "AxisZParams"`;
+    //store the values from the field
+    int $numD = `intField -q -value $numDuplicates`;
+    float $x1 = `floatFieldGrp -q -v1 $xField`;
+    float $x2 = `floatFieldGrp -q -v2 $xField`;
+    float $y1 = `floatFieldGrp -q -v1 $yField`;
+    float $y2 = `floatFieldGrp -q -v2 $yField`;
+    float $z1 = `floatFieldGrp -q -v1 $zField`;
+    float $z2 = `floatFieldGrp -q -v2 $zField`;
+    Scatter($numD, $x1, $x2, $y1, $y2, $z1, $z2);
+}
+
+
+global proc ScatterUI()
+{
+    string $scatterW = "scatterWindow";
+
+    if(`window -exists $scatterW`)
+        deleteUI $scatterW;
+    
+    string $scatterW = `window -title "Scatter Objects"
+                        -widthHeight 400 400
+                        -resizeToFitChildren 1
+                        $scatterW`;
+        string $swColumn = `columnLayout -parent $scatterW -adjustableColumn 1`;
+            optionVar -stringValue "duplicationCountFld" `intField -ann "Times to duplicate" -parent $swColumn`;
+            optionVar -stringValue "AxisXParams" `floatFieldGrp -parent $swColumn -nf 2 -l "X Params"`;
+            optionVar -stringValue "AxisYParams" `floatFieldGrp -parent $swColumn -nf 2 -l "Y Params"`;
+            optionVar -stringValue "AxisZParams" `floatFieldGrp -parent $swColumn -nf 2 -l "Z Params"`;
+            button -parent $swColumn -label "ScatterObjects" -command "S_ButtonCmd";
+
+    showWindow $scatterW;
+}
+
+ScatterUI();
