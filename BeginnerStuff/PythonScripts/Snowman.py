@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 
 
-def create_snowman(scale):
+def create_snowman(scale, moveto):
     headSize = scale
     midSize = headSize * 1.5
     baseSize = headSize * 2
@@ -18,7 +18,7 @@ def create_snowman(scale):
     # eyes
     eyes = cmds.polySphere(r=headSize / 5)
     cmds.xform(eyes, t=((headSize * .5), (headCenter * 1.05), (headSize * .75)))
-    eyes2 = cmds.polyMirrorFace(eyes, axisDirection=1)
+    cmds.polyMirrorFace(eyes, axisDirection=1)
     # nose
     nose = cmds.polyCone(r=headSize / 5, )
     cmds.xform(nose, ro=(90, 0, 0), t=(0, headCenter, headSize * 1.25))
@@ -26,5 +26,8 @@ def create_snowman(scale):
     hat = cmds.polyCone(r=headSize * .75, h=headSize * 2)
     cmds.xform(hat, ro=(0, 0, -17.5), t=(headSize * .5, headCenter + headSize * 1.5, 0))
 
+    snowman = cmds.polyUnite(base, midSec, head, eyes, nose, hat)
+    cmds.xform(snowman, t=moveto)
 
-create_snowman(1.5)
+
+create_snowman(1.5, (1, 3, 0))
