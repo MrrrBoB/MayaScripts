@@ -1,0 +1,5 @@
+string $control[] = `ls -sl`;
+string $controlName = $control[0];
+string $controlGroup[] = `doGroup 0 1 1`;
+string $newGroupName = ($controlName + "_grp");
+rename $controlGroup $newGroupName;
