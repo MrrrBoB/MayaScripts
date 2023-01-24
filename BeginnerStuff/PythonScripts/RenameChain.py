@@ -27,15 +27,16 @@ def button_command():
 
 
 def show_rename_window():
-    cmds.showWindow(window)
+    if cmds.window("rcWindow", exists=True):
+        cmds.deleteUI("rcWindow")
+
+    cmds.showWindow(rcWindow)
 
 
-window = cmds.window(title="Rename Chain", iconName='Short Name', widthHeight=(300, 70))
+rcWindow = cmds.window(title="Rename Chain", iconName='Short Name', widthHeight=(300, 70))
 cmds.columnLayout(adjustableColumn=True)
 cmds.text(label="Rename Format")
 inputField = cmds.textField(placeholderText="use # for digit count, ex: Arm_##_Jnt")
 cmds.button(label='Rename', command='button_command()')
 cmds.setParent('..')
 
-
-show_rename_window()

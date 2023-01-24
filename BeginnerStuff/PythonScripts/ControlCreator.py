@@ -2,11 +2,11 @@ import maya.cmds as cmds
 
 
 def createControl(controlName, radiusSize, ctrlColor):
-    theJoint = cmds.ls(sl=True)
-    myControl = cmds.circle(radius=radiusSize, name=controlName + "_Ctrl")
-    controlShape = myControl[0]
-    cmds.setAttr(str(controlShape) + ".overrideEnabled", 1)
-    cmds.setAttr(str(controlShape) + ".overrideColor", ctrlColor)
+    theJoint = cmds.ls(sl=True)[0]
+    myControl = cmds.circle(radius=radiusSize, name=controlName + "_Ctrl")[0]
+    controlShapeNode = cmds.listRelatives(myControl, shapes=True)[0]
+    cmds.setAttr(str(controlShapeNode) + ".overrideEnabled", 1)
+    cmds.setAttr(str(controlShapeNode) + ".overrideColor", ctrlColor)
     controlGroup = cmds.group(myControl, name=controlName + "_Ctrl_Grp")
     cmds.matchTransform(controlGroup, theJoint)
     cmds.xform(myControl, ro=(0, 90, 0))
@@ -16,7 +16,11 @@ def createControl(controlName, radiusSize, ctrlColor):
 
 
 def buttonCommand():
-    chosenName = cmds.textField(chosenNameField, q=True, text=True)
+    if len(cmds.textField(chosenNameField, q=True, text=True)) == 0:
+        cmds.warning("Please give the control a name")
+        return
+    else:
+        chosenName = cmds.textField(chosenNameField, q=True, text=True)
     chosenRadius = cmds.floatSliderGrp(chosenRadiusField, q=True, value=True)
     selectedColor = 6
     selectedButton = cmds.radioButtonGrp(colorButtonGrp, q=True, select=True)
@@ -30,6 +34,8 @@ def buttonCommand():
 
 
 def createControlWindow():
+    if cmds.window("ccWindow", exists=True):
+        cmds.deleteUI("ccWindow")
     cmds.showWindow(ccWindow)
 
 
@@ -39,10 +45,17 @@ cmds.rowLayout(numberOfColumns=2, columnAlign=(1, "right"))
 cmds.text(label="Control name:")
 chosenNameField = cmds.textField(placeholderText='ex:"Shoulder"')
 cmds.setParent('..')
-chosenRadiusField = cmds.floatSliderGrp(label="Radius Size:", min=.1, max=10, value=3, field=True)
-colorButtonGrp = cmds.radioButtonGrp(label="Control Color:", labelArray3=["Blue(FK)", "Red(IK)", "Other"],
+chosenRadiusField = cmds.floatSliderGrp(label="Radius Size:",
+                                        min=.1,
+                                        max=10,
+                                        value=3,
+                                        field=True)
+colorButtonGrp = cmds.radioButtonGrp(label="Control Color:",
+                                     labelArray3=["Blue(FK)", "Red(IK)", "Other"],
                                      numberOfRadioButtons=3, select=1)
-customColorSlider = cmds.colorIndexSliderGrp(label="Other Color", min=0, max=31, value=18)
+customColorSlider = cmds.colorIndexSliderGrp(label="Other Color",
+                                             min=0,
+                                             max=31,
+                                             value=18)
 cmds.button(label="Create Control", command='buttonCommand()')
 
-createControlWindow()
