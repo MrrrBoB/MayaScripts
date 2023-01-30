@@ -59,3 +59,5 @@ customColorSlider = cmds.colorIndexSliderGrp(label="Other Color",
                                              value=18)
 cmds.button(label="Create Control", command='buttonCommand()')
 
+createControlWindow()
+
