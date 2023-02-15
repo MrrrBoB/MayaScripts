@@ -40,3 +40,5 @@ inputField = cmds.textField(placeholderText="use # for digit count, ex: Arm_##_J
 cmds.button(label='Rename', command='button_command()')
 cmds.setParent('..')
 
+show_rename_window()
+
