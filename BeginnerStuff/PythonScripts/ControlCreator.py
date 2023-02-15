@@ -67,7 +67,3 @@ customColorSlider = cmds.colorIndexSliderGrp(label="Other Color",
 cmds.button(label="Create Control", command='buttonCommand()')
 
 createControlWindow()
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
