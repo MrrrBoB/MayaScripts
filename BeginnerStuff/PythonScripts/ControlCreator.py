@@ -1,29 +1,35 @@
 import maya.cmds as cmds
 
 
-def createControl(controlName, radiusSize, ctrlColor, axis):
+def createControl(chosenName, radiusSize, ctrlColor, axis):
+    hasName = chosenName is not None
     theJoint = cmds.ls(sl=True)[0]
-    myControl = cmds.circle(radius=radiusSize, name=controlName + "_Ctrl")[0]
+    if hasName:
+        myControl = cmds.circle(radius=radiusSize, name=chosenName+"_Ctrl")[0]
+    else:
+        myControl = cmds.circle(radius=radiusSize, name="%s_Ctrl" % theJoint)[0]
     controlShapeNode = cmds.listRelatives(myControl, shapes=True)[0]
     cmds.setAttr(str(controlShapeNode) + ".overrideEnabled", 1)
     cmds.setAttr(str(controlShapeNode) + ".overrideColor", ctrlColor)
-    controlGroup = cmds.group(myControl, name=controlName + "_Ctrl_Grp")
+    if hasName:
+        controlGroup = cmds.group(myControl, name=chosenName+"_Ctrl_Grp")
+    else:
+        controlGroup = cmds.group(myControl, name="%s_Grp" % myControl)
     cmds.matchTransform(controlGroup, theJoint)
     if axis == 1:
         cmds.xform(myControl, ro=(0, 90, 0))
     elif axis == 2:
         cmds.xform(myControl, ro=(90, 0, 0))
     cmds.makeIdentity(myControl, apply=True, rotate=True)
-    cmds.parentConstraint(myControl, theJoint)
-    cmds.scaleConstraint(myControl, theJoint)
+    # cmds.parentConstraint(myControl, theJoint)
+    # cmds.scaleConstraint(myControl, theJoint)
 
 
 def buttonCommand():
-    if len(cmds.textField(chosenNameField, q=True, text=True)) == 0:
-        cmds.warning("Please give the control a name")
-        return
-    else:
+    if len(cmds.textField(chosenNameField, q=True, text=True)) != 0:
         chosenName = cmds.textField(chosenNameField, q=True, text=True)
+    else:
+        chosenName = None
     chosenRadius = cmds.floatSliderGrp(chosenRadiusField, q=True, value=True)
     selectedColor = 6
     selectedButton = cmds.radioButtonGrp(colorButtonGrp, q=True, select=True)
