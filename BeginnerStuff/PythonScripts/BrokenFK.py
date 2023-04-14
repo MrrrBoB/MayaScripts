@@ -10,8 +10,10 @@ pConstraint2 = cmds.parentConstraint(parentControl, childCtrlGrp, mo=True, skipT
 sContstraint = cmds.scaleConstraint(parentControl, childCtrlGrp, weight=1)
 
 cmds.addAttr(childControl, ln="FollowTranslate", at='double', min=0, max=1, dv=1, k=True)
-#cmds.addAttr('%s.FollowTranslate' % (childControl), e=true, k=True)
 cmds.addAttr(childControl, ln="FollowRotate", at='double', min=0, max=1, dv=1, k=True)
 
 cmds.connectAttr('%s.FollowTranslate' % (childControl), '%s.w0' % (pConstraint1), f=True)
 cmds.connectAttr('%s.FollowRotate' % (childControl), '%s.w0' % (pConstraint2), f=True)
+
+cmds.parentConstraint()
+cmds.scaleConstraint()
