@@ -48,8 +48,8 @@ def autoLimbTool(nameSet, numJointsSet, yesCreateHandle):
     cmds.select(cl=True)
     # duplicate the joint chain
     newJointTypeList = ['_IK', '_FK', '_Stretch']
-    if isRearLeg:
-        newJointTypeList.append("_Driver")
+    '''if isRearLeg:
+        newJointTypeList.append("_Driver")'''
     # build chains
     for newJoint in newJointTypeList:
         for i in range(limbJoints):
@@ -86,16 +86,19 @@ def autoLimbTool(nameSet, numJointsSet, yesCreateHandle):
     ikfkReverseOutPut = (ikfkReverseNode + '.outputX')
     # connect the switch to the reverse node
     cmds.connectAttr(ikfkSwitchAttr, (ikfkReverseNode + '.inputX'), f=True)
-
+# assign the IKFK Switch to the transform control and assign values
     for i in range(limbJoints):
         getConstraint = cmds.listConnections(originalJointHierarchy[i], type='parentConstraint')[0]
         getWeights = cmds.parentConstraint(getConstraint, q=True, wal=1)
         cmds.connectAttr(ikfkSwitchAttr, (getConstraint + '.' + getWeights[1]), f=1)
         cmds.connectAttr(ikfkReverseOutPut, (getConstraint + '.' + getWeights[0]), f=1)
+# checks if the root joint has a parent, and if so, parents the created chains to the parent
     if hasParent:
         for i in range(len(newJointTypeList)):
             print((originalJointHierarchy[0]+newJointTypeList[i]))
             cmds.parent((originalJointHierarchy[0]+newJointTypeList[i]), hierarchyParent)
+# Make stretchy
+    
 
 
 def buttonCommand():
@@ -114,6 +117,7 @@ def AutoLimbUI():
 
 aLWindow = cmds.window(title="Create RK System", widthHeight=(500, 200))
 cmds.columnLayout(adjustableColumn=True, rowSpacing=5)
+cmds.text(label='NOTE: "Transform_Ctrl" must be present')
 cmds.rowLayout(numberOfColumns=2, columnAlign=(1, "right"))
 cmds.text(label='Limb/Chain name:')
 chainNameField = cmds.textField(placeholderText='ex:RearLeftLeg')
