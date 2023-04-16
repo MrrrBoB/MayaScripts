@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 
 
-def autoLimbTool(nameSet, numJointsSet, yesCreateHandle):
+def autoLimbTool(nameSet, numJointsSet, yesCreateHandle, transformControl):
     # SetupVariables from ui
     # is this front or rear
     isRearLeg = 1
@@ -26,10 +26,6 @@ def autoLimbTool(nameSet, numJointsSet, yesCreateHandle):
     print(hasParent)
 
     # check transform control exists
-    if not cmds.ls("Transform_Ctrl"):
-        cmds.error('No "Transform_Ctrl" to assign switch to')
-    else:
-        transformControl = cmds.ls("Transform_Ctrl")[0]
     # check which side
     '''whichSide = rootJoint[0:2]
     if not 'L_' in whichSide:
@@ -47,7 +43,7 @@ def autoLimbTool(nameSet, numJointsSet, yesCreateHandle):
     originalJointHierarchy.reverse()
     cmds.select(cl=True)
     # duplicate the joint chain
-    newJointTypeList = ['_IK', '_FK', '_Stretch']
+    newJointTypeList = ['_IK', '_FK']
     '''if isRearLeg:
         newJointTypeList.append("_Driver")'''
     # build chains
@@ -98,21 +94,32 @@ def autoLimbTool(nameSet, numJointsSet, yesCreateHandle):
             print((originalJointHierarchy[0]+newJointTypeList[i]))
             cmds.parent((originalJointHierarchy[0]+newJointTypeList[i]), hierarchyParent)
 # Make stretchy
-    
 
 
 def buttonCommand():
     chosenName = cmds.textField(chainNameField, q=True, text=True)
     chosenName = chosenName.replace(" ", "_")
+    if chosenName == '':
+        cmds.error('Please specify the name of the joint chain')
     chosenNumJoints = cmds.intField(numJointsField, q=True, value=True)
+    if chosenNumJoints<2:
+        cmds.error('Invalid number of joints given')
     handleChoice = cmds.checkBox(ikHandleCheckbox, q=True, value=True)
-    autoLimbTool(chosenName, chosenNumJoints, handleChoice)
+    switchControl = cmds.textField(IKFKControlTextField, q=1, text=True)
+    if switchControl == '':
+        cmds.error('No control was selected to recieve the IKFK switch attribute')
+    autoLimbTool(chosenName, chosenNumJoints, handleChoice, switchControl)
 
 
 def AutoLimbUI():
     if cmds.window("aLWindow", exists=True):
         cmds.deleteUI("aLWindow")
     cmds.showWindow(aLWindow)
+
+def getIKFKControl():
+    selection = cmds.ls(sl=1)[0]
+    cmds.textField(IKFKControlTextField, e=True, text=selection)
+
 
 
 aLWindow = cmds.window(title="Create RK System", widthHeight=(500, 200))
@@ -126,7 +133,13 @@ cmds.rowLayout(numberOfColumns=2)
 cmds.text(label='Number of joints in limb/chain')
 numJointsField = cmds.intField()
 cmds.setParent('..')
+cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
+cmds.text(label='IKFK Switch Control')
+IKFKControlTextField = cmds.textField(placeholderText='ex:"TransformControl"')
+cmds.button(label='getSelection', command='getIKFKControl()')
+cmds.setParent('..')
 ikHandleCheckbox = cmds.checkBox(label='Create IK Handle')
+cmds.text('IMPORTANT: Please have the starting joint selected before proceeding')
 cmds.button(label='Create RK System', command='buttonCommand()')
 
 AutoLimbUI()

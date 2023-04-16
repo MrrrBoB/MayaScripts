@@ -15,9 +15,9 @@ firstJointTextField = cmds.textField(placeholderText='ex:"IK_01_Jnt"')
 cmds.button(label='getSelection', command='getStartJoint()')
 cmds.setParent('..')
 cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
-cmds.text(label='End Joint')
-lastJointTextField = cmds.textField(placeholderText='ex:"IK_03_Jnt"')
-cmds.button(label='getSelection', command='getEndJoint()')
+cmds.text(label='Base Control')
+baseControlTextField = cmds.textField(placeholderText='ex:"IK_Shoulder_Ctrl"')
+cmds.button(label='getSelection', command='getBaseControl()')
 cmds.setParent('..')
 cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
 cmds.text(label='IK Control')
@@ -41,9 +41,9 @@ def getStartJoint():
     cmds.textField(firstJointTextField, e=True, text=selection)
 
 
-def getEndJoint():
+def getBaseControl():
     selection = cmds.ls(sl=1)[0]
-    cmds.textField(lastJointTextField, e=True, text=selection)
+    cmds.textField(baseControlTextField, e=True, text=selection)
 
 
 def getIKControl():
@@ -53,13 +53,13 @@ def getIKControl():
 
 def CreateStretchButtonCommand():
     chosenStartJoint = cmds.textField(firstJointTextField, q=1, text=1)
-    chosenEndJoint = cmds.textField(lastJointTextField, q=1, text=True)
+    chosenBaseControl = cmds.textField(baseControlTextField, q=1, text=True)
     chosenIKControl = cmds.textField(IKControlTextField, q=1, text=True)
     chosenMaxStretch = cmds.floatSliderGrp(maxStretchFloatSlider, q=True, v=True)
-    CreateIKStretch(chosenStartJoint, chosenEndJoint, chosenIKControl, chosenMaxStretch)
+    CreateIKStretch(chosenStartJoint, chosenBaseControl, chosenIKControl, chosenMaxStretch)
 
 
-def CreateIKStretch(startJoint, endJoint, ikControl, maxStretchValue):
+def CreateIKStretch(startJoint, baseControl, ikControl, maxStretchValue):
 
 # add the stretch switch and max stretch attribute to the ik Control
     cmds.addAttr(ikControl, longName='Stretch', attributeType='float', minValue=0, maxValue=1, dv=1, keyable=True)
@@ -67,7 +67,7 @@ def CreateIKStretch(startJoint, endJoint, ikControl, maxStretchValue):
 # add the locators
     baseLoc = cmds.spaceLocator(n=(startJoint+'_baseStretch_Loc'))[0]
     cmds.matchTransform(baseLoc, startJoint)
-    cmds.parentConstraint(startJoint, baseLoc)
+    cmds.parentConstraint(baseControl, baseLoc)
     endLoc = cmds.spaceLocator(n=(startJoint+'_endStretch_Loc'))[0]
     cmds.matchTransform(endLoc, ikControl)
     cmds.parentConstraint(ikControl, endLoc)
