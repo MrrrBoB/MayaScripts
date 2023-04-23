@@ -1,7 +1,7 @@
 import maya.cmds as cmds
 
 
-def createTwistJoint(placeholderName, firstJoint, secondJoint, zDirection, endOfChain):
+def createTwistJoint(placeholderName, numJoints, firstJoint, secondJoint, zDirection, endOfChain):
     # create the aim loc
     aimLoc = cmds.spaceLocator(n=placeholderName + '_Aim_Loc')[0]
     locGrp = cmds.group(aimLoc, n=placeholderName + '_Twist_Loc_Grp')
@@ -21,23 +21,34 @@ def createTwistJoint(placeholderName, firstJoint, secondJoint, zDirection, endOf
     # create the aim constraint
     print(upTargetLoc)
     # if addConstraint:
-    cmds.aimConstraint(targetLoc, aimLoc, o=(0, 0, 0), aim=(1, 0, 0), u=(0, 0, zDirection), wut='object', wuo=upTargetLoc)
-    # creat mid loc
-    midTwistLoc = cmds.duplicate(targetLoc, n=placeholderName + '_Mid_Loc')[0]
-    cmds.pointConstraint(targetLoc, aimLoc, midTwistLoc)
-    # hookup the twist joints
-    scalarMDNode = cmds.createNode('multiplyDivide', n=placeholderName + '_MidLoc_Scale_MD')
-    cmds.connectAttr(aimLoc + '.rotateX', scalarMDNode + '.input1X')
-    cmds.setAttr(scalarMDNode + '.input2X', -0.5*zDirection)
-    cmds.connectAttr(scalarMDNode + '.outputX', midTwistLoc + '.rotateX')
-    # create and constrain the middle joint
-    middleTwistJoint = cmds.duplicate(firstJoint, po=1, n=placeholderName+'_Mid_Twist_Jnt')[0]
-    cmds.parent(middleTwistJoint, firstJoint)
-    cmds.parentConstraint(midTwistLoc, middleTwistJoint, mo=0)
-    cmds.setAttr(middleTwistJoint + ".overrideEnabled", 1)
-    cmds.setAttr(middleTwistJoint + ".overrideColor", 16)
-    smallRadius = (cmds.joint(firstJoint, q=1, radius=1)[0])*.5
-    cmds.setAttr(middleTwistJoint+'.radius', smallRadius)
+    cmds.aimConstraint(targetLoc, aimLoc, o=(0, 0, 0), aim=(-1, 0, 0), u=(0, 0, -zDirection), wut='object', wuo=upTargetLoc)
+    smallRadius = cmds.joint(firstJoint, q=1, radius=1)[0] * -.5
+    for i in range(numJoints):
+        # get weight values
+        jointNum = i+1
+        secondJointWeight = jointNum * (1 / (numJoints + 1))
+        firstJointWeight = 1 - secondJointWeight
+        # create the locators
+        midTwistLoc = cmds.duplicate(targetLoc, n=placeholderName + '_Mid_Loc'+str(i+1))[0]
+        cmds.pointConstraint(targetLoc, aimLoc, midTwistLoc, mo=0)
+        # set the constraint to balance based on which locator it is
+        thisPointConstraint = cmds.listConnections(midTwistLoc, type='pointConstraint')[0]
+        weightList = cmds.pointConstraint(thisPointConstraint, q=1, wal=1)
+        cmds.setAttr(thisPointConstraint+'.'+weightList[0], firstJointWeight)
+        cmds.setAttr(thisPointConstraint+'.'+weightList[1], secondJointWeight)
+        # set up the nodes
+        thisRotateMDNode = cmds.createNode('multiplyDivide', n=placeholderName+'_MidLoc '+str(jointNum)+'_Rotate_MD')
+        cmds.connectAttr(aimLoc + '.rotateX', thisRotateMDNode + '.input1X')
+        cmds.setAttr(thisRotateMDNode + '.input2X', secondJointWeight * zDirection)
+        cmds.connectAttr(thisRotateMDNode + '.outputX', midTwistLoc + '.rotateX')
+        # create and place the joint
+        thisJoint = cmds.duplicate(firstJoint, po=1, n=placeholderName+'_Mid_Twist_Jnt_'+str(i+1))[0]
+        cmds.parent(thisJoint, firstJoint)
+        cmds.parentConstraint(midTwistLoc, thisJoint, mo=0)
+        # set the color and size of the joint
+        cmds.setAttr(thisJoint + ".overrideEnabled", 1)
+        cmds.setAttr(thisJoint + ".overrideColor", 16)
+        cmds.setAttr(thisJoint + '.radius', smallRadius)
     if endOfChain:
         endTwistJoint = cmds.duplicate(firstJoint, po=1, n=placeholderName+'_End_Twist_Jnt')[0]
         cmds.parent(endTwistJoint, firstJoint)
@@ -53,11 +64,15 @@ def createLowerTwistJointWindow():
     cmds.showWindow(ltWindow)
 
 
-ltWindow = cmds.window(title="Add Roll Joint", widthHeight=(400, 140))
+ltWindow = cmds.window(title="Add Roll Joint", widthHeight=(400, 160))
 cmds.columnLayout(adjustableColumn=True, rowSpacing=5)
 cmds.rowLayout(numberOfColumns=2, columnAlign=(1, 'right'))
 cmds.text(label='System Name')
 nameField = cmds.textField(placeholderText='Left Forearm Twist', w=200)
+cmds.setParent('..')
+cmds.rowLayout(numberOfColumns=2, columnAlign=(1, 'right'))
+cmds.text(label='Number of Twist Joints')
+numJField = cmds.intField(min=1, v=1)
 cmds.setParent('..')
 cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
 cmds.text(label='Start Joint')
@@ -88,6 +103,7 @@ def getSecondJoint():
 
 
 def twistButtonCommand():
+    numJ = cmds.intField(numJField, q=1, v=1)
     chosenFirst = cmds.textField(firstJointTextField, q=1, text=1)
     chosenSecond = cmds.textField(secondJointTextField, q=1, text=1)
     if cmds.checkBox(mirroredJointBox, q=1, v=1):
@@ -96,5 +112,5 @@ def twistButtonCommand():
         zDir = 1
     nameF = cmds.textField(nameField, q=1, text=1)
     endChain = cmds.checkBox(endOfChainBox, q=1, v=1)
-    createTwistJoint(nameF, chosenFirst, chosenSecond, zDir, endChain)
+    createTwistJoint(nameF, numJ, chosenFirst, chosenSecond, zDir, endChain)
     # negative z is mirrored
