@@ -67,9 +67,13 @@ def autoLimbTool(nameSet, numJointsSet, yesCreateHandle, transformControl, dupli
         for i in range(limbJoints):
             cmds.parentConstraint((originalJointHierarchy[i] + '_IK'), (originalJointHierarchy[i] + '_FK'),
                                   originalJointHierarchy[i], w=1, mo=0)
+            cmds.scaleConstraint((originalJointHierarchy[i] + '_IK'), (originalJointHierarchy[i] + '_FK'),
+                                  originalJointHierarchy[i], w=1, mo=0)
     else:
         for i in range(len(originalJointHierarchy)):
             cmds.parentConstraint((originalJointHierarchy[i] + '_IK'), (originalJointHierarchy[i] + '_FK'),
+                                  originalJointHierarchy[i], w=1, mo=0)
+            cmds.scaleConstraint((originalJointHierarchy[i] + '_IK'), (originalJointHierarchy[i] + '_FK'),
                                   originalJointHierarchy[i], w=1, mo=0)
     # unlock drawing override for root chain
     cmds.setAttr(originalJointHierarchy[0] + ".overrideEnabled", 1)
@@ -96,16 +100,24 @@ def autoLimbTool(nameSet, numJointsSet, yesCreateHandle, transformControl, dupli
 # assign the IKFK Switch to the transform control and assign values
     if not duplicateWholeJointChain:
         for i in range(limbJoints):
-            getConstraint = cmds.listConnections(originalJointHierarchy[i], type='parentConstraint')[0]
-            getWeights = cmds.parentConstraint(getConstraint, q=True, wal=1)
-            cmds.connectAttr(ikfkSwitchAttr, (getConstraint + '.' + getWeights[1]), f=1)
-            cmds.connectAttr(ikfkReverseOutPut, (getConstraint + '.' + getWeights[0]), f=1)
+            getParentConstraint = cmds.listConnections(originalJointHierarchy[i], type='parentConstraint')[0]
+            getScaleConstraint = cmds.listConnections(originalJointHierarchy[i], type='scaleConstraint')[0]
+            getParentWeights = cmds.parentConstraint(getParentConstraint, q=True, wal=1)
+            getScaleWeights = cmds.scaleConstraint(getScaleConstraint, q=1, wal=2)
+            cmds.connectAttr(ikfkSwitchAttr, (getParentConstraint + '.' + getParentWeights[1]), f=1)
+            cmds.connectAttr(ikfkReverseOutPut, (getParentConstraint + '.' + getParentWeights[0]), f=1)
+            cmds.connectAttr(ikfkSwitchAttr, (getScaleConstraint + '.' + getScaleWeights[1]), f=1)
+            cmds.connectAttr(ikfkReverseOutPut, (getScaleConstraint + '.' + getScaleWeights[0]), f=1)
     else:
         for i in range(len(originalJointHierarchy)):
-            getConstraint = cmds.listConnections(originalJointHierarchy[i], type='parentConstraint')[0]
-            getWeights = cmds.parentConstraint(getConstraint, q=True, wal=1)
-            cmds.connectAttr(ikfkSwitchAttr, (getConstraint + '.' + getWeights[1]), f=1)
-            cmds.connectAttr(ikfkReverseOutPut, (getConstraint + '.' + getWeights[0]), f=1)
+            getParentConstraint = cmds.listConnections(originalJointHierarchy[i], type='parentConstraint')[0]
+            getScaleConstraint = cmds.listConnections(originalJointHierarchy[i], type='scaleConstraint')[0]
+            getParentWeights = cmds.parentConstraint(getParentConstraint, q=True, wal=1)
+            getScaleWeights = cmds.scaleConstraint(getScaleConstraint, q=1, wal=2)
+            cmds.connectAttr(ikfkSwitchAttr, (getParentConstraint + '.' + getParentWeights[1]), f=1)
+            cmds.connectAttr(ikfkReverseOutPut, (getParentConstraint + '.' + getParentWeights[0]), f=1)
+            cmds.connectAttr(ikfkSwitchAttr, (getScaleConstraint + '.' + getScaleWeights[1]), f=1)
+            cmds.connectAttr(ikfkReverseOutPut, (getScaleConstraint + '.' + getScaleWeights[0]), f=1)
 # checks if the root joint has a parent, and if so, parents the created chains to the parent
     parentJointCheck = cmds.listRelatives(rootJoint, p=True)
     if (not parentJointCheck) or duplicateWholeJointChain:
