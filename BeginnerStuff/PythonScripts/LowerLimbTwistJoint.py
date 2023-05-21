@@ -80,7 +80,7 @@ def createMidTwists(placeholderName, numJoints, firstJoint, secondJoint, zDirect
             cmds.setAttr(thisRotateMDNode + '.input2X', secondJointWeight * -1)
         else:
             cmds.connectAttr(aimLoc + '.rotateX', thisRotateMDNode + '.input1X')
-            cmds.setAttr(thisRotateMDNode + '.input2X', secondJointWeight * zDirection)
+            cmds.setAttr(thisRotateMDNode + '.input2X', secondJointWeight)
         cmds.connectAttr(thisRotateMDNode + '.outputX', midTwistLoc + '.rotateX')
         # create and place the joint
         thisJoint = cmds.duplicate(firstJoint, po=1, n=placeholderName + '_Mid_Twist_Jnt_' + str(i + 1))[0]
