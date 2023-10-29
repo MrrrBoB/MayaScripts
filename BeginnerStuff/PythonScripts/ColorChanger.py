@@ -5,9 +5,7 @@ def changeColor(colorIndex):
     theControls = cmds.ls(sl=1)
     for ctrl in theControls:
         ctrlShapeNode = cmds.listRelatives(ctrl, shapes=1, fullPath=1)
-        print(ctrlShapeNode)
         for node in ctrlShapeNode:
-            print(node)
             cmds.setAttr(node + ".overrideEnabled", 1)
             cmds.setAttr(node + ".overrideColor", colorIndex - 1)
 
