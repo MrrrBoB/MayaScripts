@@ -1,20 +1,12 @@
 import maya.cmds as cmds
 
 
-def createControl(chosenName, radiusSize, ctrlColor, axis, constrainJoint):
-    hasName = chosenName is not None
-    theJoint = cmds.ls(sl=True)[0]#NateMadeThis
-    if hasName:
-        myControl = cmds.circle(radius=radiusSize, name=chosenName+"_Ctrl")[0]
-    else:
-        myControl = cmds.circle(radius=radiusSize, name="%s_Ctrl" % theJoint)[0]
+def createControl(chosenName, radiusSize, ctrlColor, axis, constrainJoint, theJoint):
+    myControl = cmds.circle(radius=radiusSize, name=chosenName+"_Ctrl")[0]
     controlShapeNode = cmds.listRelatives(myControl, shapes=True)[0]
     cmds.setAttr(str(controlShapeNode) + ".overrideEnabled", 1)
     cmds.setAttr(str(controlShapeNode) + ".overrideColor", ctrlColor)
-    if hasName:
-        controlGroup = cmds.group(myControl, name=chosenName+"_Ctrl_Grp")
-    else:
-        controlGroup = cmds.group(myControl, name="%s_Grp" % myControl)
+    controlGroup = cmds.group(myControl, name=chosenName+"_Ctrl_Grp")
     cmds.matchTransform(controlGroup, theJoint)
     if axis == 1:
         cmds.xform(myControl, ro=(0, 90, 0))#NateMadeThis
@@ -42,7 +34,26 @@ def buttonCommand():
         selectedColor = cmds.colorIndexSliderGrp(customColorSlider, q=True, value=True) - 1
     selectedAxis = cmds.radioButtonGrp(axisSelection, q=True, select=True)
     selectedConstrainOption = cmds.checkBox(constraintCheckBox, q=True, value=True)
-    createControl(chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption)
+    sels = cmds.ls(sl=1)
+    if len(sels) <= 0:
+        cmds.warning('Please select something to add the control to')
+    elif len(sels) == 1:
+        theJoint = sels[0]
+        if chosenName is None:
+            chosenName = theJoint
+        createControl(chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption, theJoint)
+    else:
+        i=1
+        for object in sels:
+            i+=1
+            if chosenName is None:
+                chosenName = object
+            else:
+                chosenName = chosenName+str(i)
+            createControl(chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption, object)
+
+
+
 
 #NateMadeThis
 def createControlWindow():
@@ -76,3 +87,6 @@ constraintCheckBox = cmds.checkBox(label='Constrain Joint')
 cmds.button(label="Create Control", command='buttonCommand()')
 
 createControlWindow()
+
+#constraintList = cmds.ls(type = 'parentConstraint')
+#cmds.select(constraintList, r=True)
