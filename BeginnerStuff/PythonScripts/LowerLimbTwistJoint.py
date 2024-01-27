@@ -15,8 +15,8 @@ def createShoulderTwistJoint(placeholderName, numJoints, firstJoint, secondJoint
     cmds.parentConstraint(firstJoint, locGrp, mo=1)
     cmds.scaleConstraint(firstJoint, locGrp)
     cmds.pointConstraint(secondJoint, targetLoc, mo=0)
-    cmds.aimConstraint(targetLoc, aimLoc, o=(0, 0, 0), aim=(zDirection, 0, 0), u=getUpAxis(sAxis, zDirection), wut='object',
-                       wuo=upTargetLoc)
+    cmds.aimConstraint(targetLoc, aimLoc, o=(0, 0, 0), aim=(zDirection, 0, 0), u=getUpAxis(sAxis, zDirection),
+                       wut='object', wuo=upTargetLoc)
     # create the joints
     ikJointOne = cmds.joint(n=placeholderName + '_IK_Joint_1')
     ikJointTwo = cmds.duplicate(ikJointOne, n=placeholderName + '_IK_Joint_2')[0]
@@ -43,7 +43,7 @@ def createShoulderTwistJoint(placeholderName, numJoints, firstJoint, secondJoint
     cmds.xform(ikJntPVLoc, os=1, r=1, t=(0, -locatorOffset, 0))
     cmds.poleVectorConstraint(ikJntPVLoc, ikHandle)
     # connect the systems
-    cmds.parentConstraint(ikJointOne, upTargetLoc, mo=1)
+    cmds.pointConstraint(ikJointOne, upTargetLoc, mo=1)
     jointSystemGrp = cmds.group(ikJntPVLoc, ikJointGrp, ikHandle, n=placeholderName + '_IK_Jnt_System')
     metaGrp = cmds.group(locGrp, jointSystemGrp, n=placeholderName + '_Master_Grp')
     createMidTwists(placeholderName, numJoints, firstJoint, secondJoint, zDirection, endOfChain, isShoulder, aimLoc,

@@ -21,8 +21,10 @@ def createControl(chosenName, radiusSize, ctrlColor, axis, constrainJoint, theJo
 def buttonCommand():
     if len(cmds.textField(chosenNameField, q=True, text=True)) != 0:
         chosenName = cmds.textField(chosenNameField, q=True, text=True)
+        noName = False
+        hName = chosenName;
     else:
-        chosenName = None
+        noName = True
     chosenRadius = cmds.floatSliderGrp(chosenRadiusField, q=True, value=True)
     selectedColor = 6
     selectedButton = cmds.radioButtonGrp(colorButtonGrp, q=True, select=True)
@@ -39,17 +41,17 @@ def buttonCommand():
         cmds.warning('Please select something to add the control to')
     elif len(sels) == 1:
         theJoint = sels[0]
-        if chosenName is None:
-            chosenName = theJoint
+        if noName:
+            chosenName =theJoint
         createControl(chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption, theJoint)
     else:
-        i=1
+        i = 1
         for object in sels:
-            i+=1
-            if chosenName is None:
+            if noName:
                 chosenName = object
             else:
-                chosenName = chosenName+str(i)
+                chosenName = hName+str(i)
+            i += 1
             createControl(chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption, object)
 
 
