@@ -2,9 +2,9 @@ import random
 
 import maya.cmds as cmds
 
-jitterRangex = .02
-jitterRangey = .02
-jitterRangez = .02
+jitterRangex = 3
+jitterRangey = 3
+jitterRangez = 3
 selectedVerts = cmds.ls(sl=1, fl=1)
 print(len(selectedVerts))
 for vert in selectedVerts:

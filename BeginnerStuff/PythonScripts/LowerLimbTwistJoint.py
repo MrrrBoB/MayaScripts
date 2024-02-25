@@ -5,12 +5,12 @@ def createShoulderTwistJoint(placeholderName, numJoints, firstJoint, secondJoint
                              endOfChain):
     isShoulder = True
 
-    aimLoc = cmds.spaceLocator(n=placeholderName + '_Aim_Loc')[0]
-    locGrp = cmds.group(aimLoc, n=placeholderName + '_Twist_Loc_Grp')
+    aimLoc = cmds.spaceLocator(n=placeholderName + '_Aim_Loc_Upper')[0]
+    locGrp = cmds.group(aimLoc, n=placeholderName + '_Twist_Loc_Grp_Upper')
     cmds.matchTransform(locGrp, firstJoint)
-    targetLoc = cmds.duplicate(aimLoc, n=placeholderName + '_Target_Loc')[0]
+    targetLoc = cmds.duplicate(aimLoc, n=placeholderName + '_Target_Loc_Upper')[0]
     cmds.matchTransform(targetLoc, secondJoint, pos=1)
-    upTargetLoc = cmds.duplicate(targetLoc, n=placeholderName + '_Up_Target')[0]
+    upTargetLoc = cmds.duplicate(targetLoc, n=placeholderName + '_Up_Target_upper')[0]
     cmds.xform(upTargetLoc, r=1, t=getLocatorAxis(locatorOffset, sAxis, zDirection))
     cmds.parentConstraint(firstJoint, locGrp, mo=1)
     cmds.scaleConstraint(firstJoint, locGrp)
@@ -102,18 +102,18 @@ def createMidTwists(placeholderName, numJoints, firstJoint, secondJoint, zDirect
 def createTwistJoint(placeholderName, numJoints, firstJoint, secondJoint, sAxis, locatorOffset, zDirection, endOfChain):
     isShoulder = False
     # create the aim loc
-    aimLoc = cmds.spaceLocator(n=placeholderName + '_Aim_Loc')[0]
-    locGrp = cmds.group(aimLoc, n=placeholderName + '_Twist_Loc_Grp')
+    aimLoc = cmds.spaceLocator(n=placeholderName + '_Aim_Loc_Lower')[0]
+    locGrp = cmds.group(aimLoc, n=placeholderName + '_Twist_Loc_Grp_Lower')
     cmds.matchTransform(locGrp, firstJoint)
     cmds.matchTransform(locGrp, secondJoint, pos=1)
     # create the loc group
     cmds.parentConstraint(firstJoint, locGrp, mo=1)
     cmds.scaleConstraint(firstJoint, locGrp)
     # Create the target loc
-    targetLoc = cmds.duplicate(aimLoc, n=placeholderName + '_Twist_Target_Loc')[0]
+    targetLoc = cmds.duplicate(aimLoc, n=placeholderName + '_Twist_Target_Loc_Lower')[0]
     cmds.matchTransform(targetLoc, firstJoint)
     # create the up locator
-    upTargetLoc = cmds.duplicate(aimLoc, n=placeholderName + '_Up_Target')[0]
+    upTargetLoc = cmds.duplicate(aimLoc, n=placeholderName + '_Up_Target_Upper_Lower')[0]
     cmds.xform(upTargetLoc, r=1, t=getLocatorAxis(locatorOffset, sAxis, zDirection))
     cmds.parentConstraint(secondJoint, upTargetLoc, mo=1)
     cmds.pointConstraint(secondJoint, aimLoc)
