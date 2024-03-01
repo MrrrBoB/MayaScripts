@@ -55,6 +55,20 @@ def buttonCommand():
             createControl(chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption, object)
 
 
+def mirrorCommand():
+    theControls = cmds.ls(sl=1)
+    print(theControls)
+    controlGrps = [cmds.listRelatives(control, parent=1)[0] for control in theControls]
+    print(controlGrps)
+    newControlGrp = cmds.duplicate(controlGrps, rr=1)
+    mirrorGrp = cmds.group(newControlGrp, n='mirrorGrp', w=1)
+    cmds.xform(mirrorGrp, piv=(0, 0, 0))
+    cmds.xform(mirrorGrp, s=(-1, 1, 1))
+    # cmds.makeIdentity(mirrorGrp, a=1, s=1, jo=1)
+    for grp in newControlGrp:
+        cmds.parent(grp, w=1)
+    cmds.delete(mirrorGrp)
+    fullControlGrp = cmds.listRelatives(newControlGrp, ad=1)
 
 
 #NateMadeThis
@@ -64,7 +78,7 @@ def createControlWindow():
     cmds.showWindow(ccWindow)
 
 #NateMadeThis
-ccWindow = cmds.window(title="Add Control", widthHeight=(450, 175))#NateMadeThis
+ccWindow = cmds.window(title="Add Control", widthHeight=(450, 205))#NateMadeThis
 cmds.columnLayout(adjustableColumn=True, rowSpacing=5, )
 cmds.rowLayout(numberOfColumns=2, columnAlign=(1, "right"))
 cmds.text(label="Control name:")#NateMadeThis
@@ -87,6 +101,7 @@ customColorSlider = cmds.colorIndexSliderGrp(label="Other Color",
                                              value=18)#NateMadeThis
 constraintCheckBox = cmds.checkBox(label='Constrain Joint')
 cmds.button(label="Create Control", command='buttonCommand()')
+cmds.button(label='Mirror Selected Controls (X axis)', command='mirrorCommand()')
 
 createControlWindow()
 
