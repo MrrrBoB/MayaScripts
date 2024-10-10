@@ -88,13 +88,15 @@ def OrientSkeleton():
         cmds.joint(currentJoint, e=1, oj='xyz', sao='yup', ch=0)
     cmds.joint("L_Arm_03_Jnt", e=1, oj='none', ch=0)
     cmds.joint("L_Hand_Jnt", e=1, oj='none', ch=0)
-    # orient thumb joint MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE MOVE
+    # orient thumb joint
     thumbAngleX = cmds.xform("L_Thumb_02_Jnt", q=1, t=1)[0]
     thumbAngleY = cmds.xform("L_Thumb_02_Jnt", q=1, t=1)[1]
     rotation = 90 * (thumbAngleX / (abs(thumbAngleX) + abs(thumbAngleY)))
     cmds.joint('L_Thumb_01_Jnt', e=1, oj='xyz', sao='yup', ch=0)
     cmds.joint('L_Thumb_02_Jnt', e=1, oj='none')
     cmds.xform("L_Thumb_01_Jnt", ro=(rotation, 0, 0))
+    cmds.makeIdentity("L_Thumb_01_Jnt", r=1, a=1)
+    cmds.joint('L_Thumb_Base_Jnt', e=1, oj='none', ch=0)
     # SKIP FINGERS
     # Orient Leg
     for currentJoint in ("L_Leg_01_Jnt", "L_Leg_02_Jnt"):
