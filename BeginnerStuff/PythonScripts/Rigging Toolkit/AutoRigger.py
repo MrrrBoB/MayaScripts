@@ -1,8 +1,25 @@
+import importlib
 import maya.cmds as cmds
-
+import sys
+sys.path.append('F:\SchoolMore\pythonProject\Rigging Toolkit')
+import IKFK
+import SplineTools as Spline
+importlib.reload(IKFK)
 # AUTO RIGGER V0.1
 # ---------------------------------------------------------------
 height = 0
+def InitializeHeirarchy():
+    if cmds.objExists('TESTRIG'):
+        cmds.error('Looks like you already have a rig started!')
+    metaGroup = cmds.group(n='TESTRIG', w=1, em=1)
+    geometryGroup = cmds.group(n='Geometry', p=metaGroup, em=1)
+    cmds.createDisplayLayer(n='Geometry_Layer')
+    skeletonGroup = cmds.group(n='Skeleton', p=metaGroup, em=1)
+    cmds.createDisplayLayer(n='Skeleton_Layer')
+    deformersGroup = cmds.group(n='Deformers', p=metaGroup, em=1)
+    ControlGroup = cmds.group(n='Controls', p=metaGroup, em=1)
+    cmds.createDisplayLayer(n='Controls_Layer')
+    cmds.select(cl=1)
 
 
 def CreateHeightLocators():
@@ -14,15 +31,15 @@ def CreateHeightLocators():
 def CreateHumanoidSkeletonTemplate():
     print("Laying out joint template")
     rigHeight = round(cmds.xform("Top_Locator", q=1, t=1)[1] - cmds.xform("Base_Locator", q=1, t=1)[1], 2)
-# create spine from hip to head
+    # create spine from hip to head
     cogJnt = cmds.joint(n='CoG_Jnt', p=(0, rigHeight * .575, 0), radius=10)
     spine01Jnt = cmds.joint(n="Spine_01_Jnt", p=cmds.xform(cogJnt, q=1, t=1), radius=5)
     spine02Jnt = cmds.joint(n="Spine_02_Jnt", p=(0, rigHeight * .065, rigHeight * .005), r=1, rad=5)
     spine03Jnt = cmds.joint(n="Spine_03_Jnt", p=(0, rigHeight * .065, rigHeight * -.02), r=1, rad=5)
     neckJnt = cmds.joint(n="Neck_Jnt", p=(0, rigHeight * .125, rigHeight * -.03), r=1, rad=5)
     headJnt = cmds.joint(n="Head_Jnt", p=(0, rigHeight * .08, rigHeight * .02), r=1, rad=5)
-# create eyes and jaw
-    cmds.joint(n="L_Eye_Jnt", p=(rigHeight*.018, rigHeight * .0244, rigHeight * .05), r=1, rad=3)
+    # create eyes and jaw
+    cmds.joint(n="L_Eye_Jnt", p=(rigHeight * .018, rigHeight * .0244, rigHeight * .05), r=1, rad=3)
     cmds.select(headJnt, r=1)
     cmds.joint(n='Jaw_Jnt', p=(0, rigHeight * .015, rigHeight * .01), r=1, rad=5)
     cmds.select(spine03Jnt, r=1)
@@ -30,18 +47,18 @@ def CreateHumanoidSkeletonTemplate():
     leftArm01Jnt = cmds.joint(n="L_Arm_01_Jnt", p=(rigHeight * .07, rigHeight * .01, rigHeight * -.03), r=1, rad=5)
     leftArm02Jnt = cmds.joint(n="L_Arm_02_Jnt", p=(rigHeight * .14, 0, rigHeight * .014), r=1, rad=5)
     leftArm03Jnt = cmds.joint(n="L_Arm_03_Jnt", p=(rigHeight * .125, 0, rigHeight * .06), r=1, rad=5)
-# create left hand
+    # create left hand
     leftHandJoint = cmds.joint(n="L_Hand_Jnt", p=cmds.xform(leftArm03Jnt, q=1, t=1, ws=1), radius=7)
-    thumbBaseJnt = cmds.joint(n="L_Thumb_Base_Jnt", p=(0, rigHeight*-.003, rigHeight*.0175), r=1, rad=3)
-    thumb01Jnt = cmds.joint(n="L_Thumb_01_Jnt", p=(rigHeight*.005, rigHeight * -.004, rigHeight * .0175), r=1, rad=3)
+    thumbBaseJnt = cmds.joint(n="L_Thumb_Base_Jnt", p=(0, rigHeight * -.003, rigHeight * .0175), r=1, rad=3)
+    thumb01Jnt = cmds.joint(n="L_Thumb_01_Jnt", p=(rigHeight * .005, rigHeight * -.004, rigHeight * .0175), r=1, rad=3)
     thumb02Jnt = cmds.joint(n="L_Thumb_02_Jnt", p=(rigHeight * .0075, rigHeight * -.004, rigHeight * .015), r=1, rad=3)
-# create and orient first finger
+    # create and orient first finger
     cmds.select(leftHandJoint, r=1)
     leftPointerFinger01Jnt = cmds.joint(n="L_PointerFinger_01_Jnt", p=(rigHeight * .033,
-                                                                      rigHeight * .005,
-                                                                      rigHeight * .035), r=1, rad=3)
+                                                                       rigHeight * .005,
+                                                                       rigHeight * .035), r=1, rad=3)
     leftPointerFinger03Jnt = cmds.joint(n="L_PointerFinger_03_Jnt", p=(rigHeight * .0245,
-                                                                       rigHeight*-.003,
+                                                                       rigHeight * -.003,
                                                                        rigHeight * .0175), r=1, rad=3)
     cmds.select(leftPointerFinger01Jnt)
     leftPointerFinger02Jnt = cmds.joint(n="L_PointerFinger_02_Jnt", rad=3)
@@ -53,18 +70,18 @@ def CreateHumanoidSkeletonTemplate():
     cmds.parent(leftPointerFinger03Jnt, leftPointerFinger02Jnt)
     cmds.joint(leftPointerFinger01Jnt, e=1, oj='xyz', sao='yup', ch=1)
     cmds.joint(leftPointerFinger03Jnt, e=1, oj='none')
-# duplicate rest of fingers
+    # duplicate rest of fingers
     for fingerName in ("MiddleFinger", "RingFinger", "Pinky"):
-        newFingerJoint1 = cmds.duplicate(leftPointerFinger01Jnt, n="L_%s_01_Jnt" %fingerName, rc=1)
+        newFingerJoint1 = cmds.duplicate(leftPointerFinger01Jnt, n="L_%s_01_Jnt" % fingerName, rc=1)
         childList = cmds.listRelatives(newFingerJoint1, ad=1)
         for child in childList:
             child = cmds.rename(child, child.replace("PointerFinger", fingerName))
             child = cmds.rename(child, child.replace("Jnt1", "Jnt"))
-# move fingers
+    # move fingers
     cmds.xform("L_MiddleFinger_01_Jnt", t=(rigHeight * .04, rigHeight * .005, rigHeight * .025), ro=(0, 8, 0))
     cmds.xform("L_RingFinger_01_Jnt", t=(rigHeight * .045, rigHeight * .005, rigHeight * .0135), ro=(0, 12, 0))
     cmds.xform("L_Pinky_01_Jnt", t=(rigHeight * .045, rigHeight * .005, rigHeight * .003), ro=(0, 16, 0))
-# create left leg
+    # create left leg
     cmds.select(cogJnt, r=1)
     pelvisJnt = cmds.joint(n="Pelvis_Jnt", p=cmds.xform(cogJnt, q=1, t=1), radius=5)
     leftLeg01Jnt = cmds.joint(n="L_Leg_01_Jnt", p=(rigHeight * .05, rigHeight * -.04, rigHeight * -.01), r=1, rad=5)
@@ -73,14 +90,15 @@ def CreateHumanoidSkeletonTemplate():
     leftFoot01Jnt = cmds.joint(n="L_Foot_01_Jnt", p=cmds.xform(leftLeg03Jnt, q=1, t=1, ws=1), radius=7)
     leftFoot02Jnt = cmds.joint(n="L_Foot_02_Jnt", p=(0, rigHeight * -.025, rigHeight * .055), r=1, rad=5)
     leftFoot03Jnt = cmds.joint(n="L_Foot_03_Jnt", p=(0, 0, rigHeight * .055), r=1, rad=5)
+    cmds.parent(cogJnt, 'Skeleton')
 
 
 def OrientSkeleton():
     # orient spine
-    print("Orient Skeleton Work In Progress")
+    print("Orienting Skeleton...")
     for currentJoint in (cmds.ls(typ='joint')):
         cmds.makeIdentity(currentJoint, r=1, a=1)
-    for currentJoint in ("Spine_01_Jnt","Spine_02_Jnt","Spine_03_Jnt", "Neck_Jnt"):
+    for currentJoint in ("Spine_01_Jnt", "Spine_02_Jnt", "Spine_03_Jnt", "Neck_Jnt"):
         cmds.joint(currentJoint, e=1, oj="xyz", sao="zdown", ch=0)
     # Orient Arm
     cmds.joint("L_Clav_Jnt", e=1, oj='xyz', sao='yup', ch=0)
@@ -107,7 +125,26 @@ def OrientSkeleton():
     cmds.joint("L_Foot_03_Jnt", e=1, oj='none')
 
 
+def MirrorJoints(alreadyOriented):
+    if not alreadyOriented:
+        OrientSkeleton()
+    cmds.mirrorJoint("L_Clav_Jnt", myz=1, mirrorBehavior=1, sr=('L_', 'R_'))
+    cmds.mirrorJoint("L_Leg_01_Jnt", myz=1, mirrorBehavior=1, sr=('L_', 'R_'))
+    cmds.mirrorJoint("L_Eye_Jnt", myz=1, mirrorBehavior=0, sr=('L_', 'R_'))
 
 
+# Create controls and add IKFK systems to limbs and spine
+def ImplementIKFK():
+    print('Implementing IKFK systems...')
+    IKFK.autoLimbTool('L_Arm_01_Jnt', 'L_Arm', 3, 1, 'TestControl', 0)
+    IKFK.autoLimbTool('R_Arm_01_Jnt', 'R_Arm', 3, 1, 'TestControl', 0)
+    IKFK.autoLimbTool('L_Leg_01_Jnt', 'L_Leg', 3, 1, 'TestControl', 0)
+    IKFK.autoLimbTool('R_Leg_01_Jnt', 'R_Leg', 3, 1, 'TestControl', 0)
+    IKFK.autoLimbTool('Spine_01_Jnt', 'Spine', 3, 0, 'TestControl', 0)
+
+
+InitializeHeirarchy()
 CreateHumanoidSkeletonTemplate()
 OrientSkeleton()
+MirrorJoints(True)
+ImplementIKFK()
