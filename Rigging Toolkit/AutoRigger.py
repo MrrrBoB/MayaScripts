@@ -1,13 +1,18 @@
 import importlib
 import maya.cmds as cmds
 import sys
+
 sys.path.append('F:\SchoolMore\pythonProject\Rigging Toolkit')
 import IKFK
-import SplineTools as Spline
+import Controls
+
 importlib.reload(IKFK)
+importlib.reload(Controls)
 # AUTO RIGGER V0.1
 # ---------------------------------------------------------------
 height = 0
+
+
 def InitializeHeirarchy():
     if cmds.objExists('TESTRIG'):
         cmds.error('Looks like you already have a rig started!')
@@ -29,6 +34,7 @@ def CreateHeightLocators():
 
 
 def CreateHumanoidSkeletonTemplate():
+    global rigHeight
     print("Laying out joint template")
     rigHeight = round(cmds.xform("Top_Locator", q=1, t=1)[1] - cmds.xform("Base_Locator", q=1, t=1)[1], 2)
     # create spine from hip to head
@@ -136,11 +142,26 @@ def MirrorJoints(alreadyOriented):
 # Create controls and add IKFK systems to limbs and spine
 def ImplementIKFK():
     print('Implementing IKFK systems...')
-    IKFK.autoLimbTool('L_Arm_01_Jnt', 'L_Arm', 3, 1, 'TestControl', 0)
-    IKFK.autoLimbTool('R_Arm_01_Jnt', 'R_Arm', 3, 1, 'TestControl', 0)
-    IKFK.autoLimbTool('L_Leg_01_Jnt', 'L_Leg', 3, 1, 'TestControl', 0)
-    IKFK.autoLimbTool('R_Leg_01_Jnt', 'R_Leg', 3, 1, 'TestControl', 0)
-    IKFK.autoLimbTool('Spine_01_Jnt', 'Spine', 3, 0, 'TestControl', 0)
+# Left Arm
+    LArmIKFKCtrl = Controls.createControl('world', 'L_Arm_IKFK_Switch', rigHeight * .025, 17, 0, 0)
+    cmds.xform(LArmIKFKCtrl+'_Grp', t=(rigHeight * .2, rigHeight * .9, rigHeight * -.04), ws=1)
+    IKFK.autoLimbTool('L_Arm_01_Jnt', 'L_Arm', 3, 1, 'L_Arm_IKFK_Switch_Ctrl', 0)
+# Right Arm
+    RArmIKFKCtrl = Controls.createControl('world', 'R_Arm_IKFK_Switch', rigHeight * .025, 17, 0, 0)
+    cmds.xform(RArmIKFKCtrl+'_Grp', t=(rigHeight * -.2, rigHeight * .9, rigHeight * -.04), ws=1)
+    IKFK.autoLimbTool('R_Arm_01_Jnt', 'R_Arm', 3, 1, 'R_Arm_IKFK_Switch_Ctrl', 0)
+# Left Leg
+    LLegIKFKCtrl = Controls.createControl('world', 'L_Leg_IKFK_Switch', rigHeight * .025, 17, 0, 0)
+    cmds.xform(LLegIKFKCtrl + '_Grp', t=(rigHeight * .2, rigHeight * .27, rigHeight * -.04), ws=1)
+    IKFK.autoLimbTool('L_Leg_01_Jnt', 'L_Leg', 3, 1, 'L_Leg_IKFK_Switch_Ctrl', 0)
+# Right Leg
+    RLegIKFKCtrl = Controls.createControl('world', 'R_Leg_IKFK_Switch', rigHeight * .025, 17, 0, 0)
+    cmds.xform(RLegIKFKCtrl + '_Grp', t=(rigHeight * -.2, rigHeight * .27, rigHeight * -.04), ws=1)
+    IKFK.autoLimbTool('R_Leg_01_Jnt', 'R_Leg', 3, 1, 'R_Leg_IKFK_Switch_Ctrl', 0)
+
+    SpineIKFKCtrl = Controls.createControl('world', 'Spine_IKFK_Switch', rigHeight * .025, 17, 0, 0)
+    cmds.xform(SpineIKFKCtrl + '_Grp', t=(rigHeight * .15, rigHeight * .65, rigHeight * -.04), ws=1)
+    IKFK.autoLimbTool('Spine_01_Jnt', 'Spine', 3, 0, 'Spine_IKFK_Switch_Ctrl', 0)
 
 
 InitializeHeirarchy()
