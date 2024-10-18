@@ -5,9 +5,13 @@ import sys
 sys.path.append('F:\SchoolMore\pythonProject\Rigging Toolkit')
 import IKFK
 import Controls
+import SplineTools
+import ColorChanger
 
 importlib.reload(IKFK)
 importlib.reload(Controls)
+importlib.reload(SplineTools)
+importlib.reload(ColorChanger)
 # AUTO RIGGER V0.1
 # ---------------------------------------------------------------
 height = 0
@@ -142,26 +146,43 @@ def MirrorJoints(alreadyOriented):
 # Create controls and add IKFK systems to limbs and spine
 def ImplementIKFK():
     print('Implementing IKFK systems...')
-# Left Arm
-    LArmIKFKCtrl = Controls.createControl('world', 'L_Arm_IKFK_Switch', rigHeight * .025, 17, 0, 0)
-    cmds.xform(LArmIKFKCtrl+'_Grp', t=(rigHeight * .2, rigHeight * .9, rigHeight * -.04), ws=1)
+    # Left Arm
+    LArmIKFKCtrl = Controls.createControl('world', 'L_Arm_IKFK_Switch', rigHeight * .025, 17, 2, 0)
+    cmds.xform(LArmIKFKCtrl + '_Grp', t=(rigHeight * .2, rigHeight * .9, rigHeight * -.04), ws=1)
     IKFK.autoLimbTool('L_Arm_01_Jnt', 'L_Arm', 3, 1, 'L_Arm_IKFK_Switch_Ctrl', 0)
-# Right Arm
-    RArmIKFKCtrl = Controls.createControl('world', 'R_Arm_IKFK_Switch', rigHeight * .025, 17, 0, 0)
-    cmds.xform(RArmIKFKCtrl+'_Grp', t=(rigHeight * -.2, rigHeight * .9, rigHeight * -.04), ws=1)
+    # Right Arm
+    RArmIKFKCtrl = Controls.createControl('world', 'R_Arm_IKFK_Switch', rigHeight * .025, 17, 2, 0)
+    cmds.xform(RArmIKFKCtrl + '_Grp', t=(rigHeight * -.2, rigHeight * .9, rigHeight * -.04), ws=1)
     IKFK.autoLimbTool('R_Arm_01_Jnt', 'R_Arm', 3, 1, 'R_Arm_IKFK_Switch_Ctrl', 0)
-# Left Leg
-    LLegIKFKCtrl = Controls.createControl('world', 'L_Leg_IKFK_Switch', rigHeight * .025, 17, 0, 0)
+    # Left Leg
+    LLegIKFKCtrl = Controls.createControl('world', 'L_Leg_IKFK_Switch', rigHeight * .025, 17, 2, 0)
     cmds.xform(LLegIKFKCtrl + '_Grp', t=(rigHeight * .2, rigHeight * .27, rigHeight * -.04), ws=1)
     IKFK.autoLimbTool('L_Leg_01_Jnt', 'L_Leg', 3, 1, 'L_Leg_IKFK_Switch_Ctrl', 0)
-# Right Leg
-    RLegIKFKCtrl = Controls.createControl('world', 'R_Leg_IKFK_Switch', rigHeight * .025, 17, 0, 0)
+    # Right Leg
+    RLegIKFKCtrl = Controls.createControl('world', 'R_Leg_IKFK_Switch', rigHeight * .025, 17, 2, 0)
     cmds.xform(RLegIKFKCtrl + '_Grp', t=(rigHeight * -.2, rigHeight * .27, rigHeight * -.04), ws=1)
     IKFK.autoLimbTool('R_Leg_01_Jnt', 'R_Leg', 3, 1, 'R_Leg_IKFK_Switch_Ctrl', 0)
-
-    SpineIKFKCtrl = Controls.createControl('world', 'Spine_IKFK_Switch', rigHeight * .025, 17, 0, 0)
+    # Spine
+    SpineIKFKCtrl = Controls.createControl('world', 'Spine_IKFK_Switch', rigHeight * .025, 17, 2, 0)
     cmds.xform(SpineIKFKCtrl + '_Grp', t=(rigHeight * .15, rigHeight * .65, rigHeight * -.04), ws=1)
     IKFK.autoLimbTool('Spine_01_Jnt', 'Spine', 3, 0, 'Spine_IKFK_Switch_Ctrl', 0)
+    SplineTools.CreateSplineFromJoint('Spine_01_Jnt_IK', 'Spine', 3)
+
+
+def IKControls():
+    print('Creating IK Controls...')
+    print('Creating Control Joints for spine')
+    cmds.select(cl=1)
+    CTRLJnt3 = cmds.joint(n='Spine_IK_Ctrl_Jnt_3', p=cmds.xform('Spine_03_Jnt', q=1, t=1, ws=1), radius=10)
+    cmds.select(cl=1)
+    CTRLJnt2 = cmds.joint(n='Spine_IK_Ctrl_Jnt_2', p=cmds.xform('Spine_02_Jnt', q=1, t=1, ws=1), radius=10)
+    ColorChanger.changeColor([CTRLJnt2, CTRLJnt3], 18)
+    cmds.select((CTRLJnt3, CTRLJnt2, 'CoG_Jnt'), r=1)
+    cmds.select('Spine_Curve', add=1)
+    cmds.skinCluster(('CoG_Jnt', CTRLJnt2, CTRLJnt3), 'Spine_Curve', tsb=1, bm=0, sm=0, nw=1)
+    cmds.orientConstraint(CTRLJnt3, 'Spine_03_Jnt_IK', mo=1)
+    Controls.createControl(CTRLJnt3, 'IK_Torso_Top', 1, 13, 1, 1)
+    Controls.createControl(CTRLJnt2, 'IK_Torso_Mid', .85, 13, 1, 1)
 
 
 InitializeHeirarchy()
@@ -169,3 +190,4 @@ CreateHumanoidSkeletonTemplate()
 OrientSkeleton()
 MirrorJoints(True)
 ImplementIKFK()
+IKControls()

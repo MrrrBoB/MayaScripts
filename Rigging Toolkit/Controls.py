@@ -12,9 +12,9 @@ def createControl(target, controlName, radiusSize, ctrlColor, axis, constrainJoi
     else:
         cmds.matchTransform(controlGroup, target)
     if axis == 1:
-        cmds.xform(myControl, ro=(0, 90, 0))
-    elif axis == 2:
         cmds.xform(myControl, ro=(90, 0, 0))
+    elif axis == 0:
+        cmds.xform(myControl, ro=(0, 90, 0))
     cmds.makeIdentity(myControl, apply=True, rotate=True)
     if constrainJoint:
         cmds.parentConstraint(myControl, target)
