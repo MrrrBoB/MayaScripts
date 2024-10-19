@@ -167,7 +167,12 @@ def ImplementIKFK():
     cmds.xform(SpineIKFKCtrl + '_Grp', t=(rigHeight * .15, rigHeight * .65, rigHeight * -.04), ws=1)
     IKFK.autoLimbTool('Spine_01_Jnt', 'Spine', 3, 0, 'Spine_IKFK_Switch_Ctrl', 0)
     SplineTools.CreateSplineFromJoint('Spine_01_Jnt_IK', 'Spine', 3)
-
+    cmds.group(SpineIKFKCtrl+'_Grp',
+               RArmIKFKCtrl+'_Grp',
+               LArmIKFKCtrl+'_Grp',
+               RLegIKFKCtrl+'_Grp',
+               LLegIKFKCtrl+'_Grp',
+               n='IKFK_Switches', w=1)
 
 def IKControls():
     print('Creating IK Controls...')
@@ -177,12 +182,38 @@ def IKControls():
     cmds.select(cl=1)
     CTRLJnt2 = cmds.joint(n='Spine_IK_Ctrl_Jnt_2', p=cmds.xform('Spine_02_Jnt', q=1, t=1, ws=1), radius=10)
     ColorChanger.changeColor([CTRLJnt2, CTRLJnt3], 18)
+    cmds.group()
     cmds.select((CTRLJnt3, CTRLJnt2, 'CoG_Jnt'), r=1)
     cmds.select('Spine_Curve', add=1)
     cmds.skinCluster(('CoG_Jnt', CTRLJnt2, CTRLJnt3), 'Spine_Curve', tsb=1, bm=0, sm=0, nw=1)
     cmds.orientConstraint(CTRLJnt3, 'Spine_03_Jnt_IK', mo=1)
     Controls.createControl(CTRLJnt3, 'IK_Torso_Top', 1, 13, 1, 1)
     Controls.createControl(CTRLJnt2, 'IK_Torso_Mid', .85, 13, 1, 1)
+    #Create Limb IK Controls
+    for prefix in ('L_', 'R_'):
+        # Create Arm Controls
+        print('Creating '+prefix+' arm controls')
+        Controls.createControl(prefix+'Hand_Jnt', prefix+'Hand_IK', .5, 13, 0, 0)
+        cmds.parent(prefix+'Arm_IK_Handle', prefix+'Hand_IK_Ctrl')
+        pvCtrl = Controls.createControl(prefix+'Arm_02_Jnt_IK', prefix+'Arm_IK_PV', .25, 13, 1, 0)
+        offsetGrp = cmds.group(n=pvCtrl+'_OFFSET_Grp', w=1, em=1)
+        cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
+        cmds.parent(offsetGrp, pvCtrl+'_Grp')
+        cmds.parent(pvCtrl, offsetGrp)
+        cmds.xform(offsetGrp, t=(0, 0, rigHeight * -.2), ws=1, r=1)
+        cmds.poleVectorConstraint(pvCtrl, prefix+'Arm_IK_Handle')
+        # Legs
+        print('Creating '+prefix+' leg controls')
+        Controls.createControl('world', prefix+'Leg_IK_Control', .5, 13, 1, 0)
+        cmds.matchTransform(prefix+'Leg_IK_Control_Ctrl_Grp', prefix+'Leg_03_Jnt_IK', pos=1)
+        pvCtrl = Controls.createControl('world', prefix+'Leg_IK_PV', .25, 13, 0, 0)
+        offsetGrp = cmds.group(n=pvCtrl + '_OFFSET_Grp', w=1, em=1)
+        cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
+        cmds.parent(offsetGrp, pvCtrl + '_Grp')
+        cmds.parent(pvCtrl, offsetGrp)
+        cmds.matchTransform(prefix+'Leg_IK_PV_Ctrl_Grp', prefix+'Leg_02_Jnt_IK', pos=1)
+        cmds.xform(offsetGrp, t=(0, 0, rigHeight * .2), ws=1, r=1)
+        cmds.poleVectorConstraint(pvCtrl, prefix+'Leg_IK_Handle')
 
 
 InitializeHeirarchy()

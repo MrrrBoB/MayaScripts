@@ -91,7 +91,7 @@ def autoLimbTool(startJoint, nameSet, numJointsSet, yesCreateHandle, transformCo
     cmds.setAttr(originalJointHierarchy[0] + ".overrideColor", 14)
     # add IK handle to the IK chain
     if yesCreateHandle and not duplicateWholeJointChain:
-        cmds.ikHandle(n=(limbName + "_IKHandle"), sol="ikRPsolver", sj=originalJointHierarchy[0] + '_IK',
+        cmds.ikHandle(n=(limbName + "_IK_Handle"), sol="ikRPsolver", sj=originalJointHierarchy[0] + '_IK',
                       ee=(originalJointHierarchy[limbJoints - 1] + '_IK'))
     # create a switch attribute to the transform control
     cmds.addAttr(transformControl, longName=(limbName + '_IKFK'), attributeType='float', defaultValue=0, maxValue=1,
