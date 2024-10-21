@@ -7,11 +7,13 @@ import IKFK
 import Controls
 import SplineTools
 import ColorChanger
+import ReverseFoot
 
 importlib.reload(IKFK)
 importlib.reload(Controls)
 importlib.reload(SplineTools)
 importlib.reload(ColorChanger)
+importlib.reload(ReverseFoot)
 # AUTO RIGGER V0.1
 # ---------------------------------------------------------------
 height = 0
@@ -100,6 +102,13 @@ def CreateHumanoidSkeletonTemplate():
     leftFoot01Jnt = cmds.joint(n="L_Foot_01_Jnt", p=cmds.xform(leftLeg03Jnt, q=1, t=1, ws=1), radius=7)
     leftFoot02Jnt = cmds.joint(n="L_Foot_02_Jnt", p=(0, rigHeight * -.025, rigHeight * .055), r=1, rad=5)
     leftFoot03Jnt = cmds.joint(n="L_Foot_03_Jnt", p=(0, 0, rigHeight * .055), r=1, rad=5)
+    ReverseFoot.CreateLocators('L', rigHeight*.001)
+    cmds.xform('L_reverse_foot_heel_locator', t=(rigHeight*.0455, 0, rigHeight*-.0445), ws=1)
+    cmds.xform('L_reverse_foot_toe_locator', t=(rigHeight*.0455, 0, rigHeight*.1), ws=1)
+    cmds.xform('L_reverse_foot_outer_locator', t=(rigHeight*.083, 0, rigHeight*.05), ws=1)
+    cmds.xform('L_reverse_foot_inner_locator', t=(rigHeight*.035, 0, rigHeight*.05), ws=1)
+    cmds.xform('L_reverse_foot_ball_locator', t=(cmds.xform(leftFoot02Jnt, q=1, t=1, ws=1)), ws=1)
+    cmds.xform('L_reverse_foot_ankle_locator', t=(cmds.xform(leftFoot01Jnt, q=1, t=1, ws=1)), ws=1)
     cmds.parent(cogJnt, 'Skeleton')
 
 
@@ -222,3 +231,4 @@ OrientSkeleton()
 MirrorJoints(True)
 ImplementIKFK()
 IKControls()
+ReverseFoot.CreateReverseFootSystem('L', rigHeight*.02)
