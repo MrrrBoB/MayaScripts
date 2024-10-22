@@ -41,6 +41,7 @@ def CreateHeightLocators():
 
 def CreateHumanoidSkeletonTemplate():
     global rigHeight
+    global footLocators
     print("Laying out joint template")
     rigHeight = round(cmds.xform("Top_Locator", q=1, t=1)[1] - cmds.xform("Base_Locator", q=1, t=1)[1], 2)
     # create spine from hip to head
@@ -102,13 +103,13 @@ def CreateHumanoidSkeletonTemplate():
     leftFoot01Jnt = cmds.joint(n="L_Foot_01_Jnt", p=cmds.xform(leftLeg03Jnt, q=1, t=1, ws=1), radius=7)
     leftFoot02Jnt = cmds.joint(n="L_Foot_02_Jnt", p=(0, rigHeight * -.025, rigHeight * .055), r=1, rad=5)
     leftFoot03Jnt = cmds.joint(n="L_Foot_03_Jnt", p=(0, 0, rigHeight * .055), r=1, rad=5)
-    ReverseFoot.CreateLocators('L', rigHeight*.001)
-    cmds.xform('L_reverse_foot_heel_locator', t=(rigHeight*.0455, 0, rigHeight*-.0445), ws=1)
-    cmds.xform('L_reverse_foot_toe_locator', t=(rigHeight*.0455, 0, rigHeight*.1), ws=1)
-    cmds.xform('L_reverse_foot_outer_locator', t=(rigHeight*.083, 0, rigHeight*.05), ws=1)
-    cmds.xform('L_reverse_foot_inner_locator', t=(rigHeight*.035, 0, rigHeight*.05), ws=1)
-    cmds.xform('L_reverse_foot_ball_locator', t=(cmds.xform(leftFoot02Jnt, q=1, t=1, ws=1)), ws=1)
-    cmds.xform('L_reverse_foot_ankle_locator', t=(cmds.xform(leftFoot01Jnt, q=1, t=1, ws=1)), ws=1)
+    footLocators = ReverseFoot.CreateLocators('L', rigHeight * .001)
+    cmds.xform('L_Reverse_Foot_Heel_Locator', t=(rigHeight * .0455, 0, rigHeight * -.0445), ws=1)
+    cmds.xform('L_Reverse_Foot_Toe_Locator', t=(rigHeight * .0455, 0, rigHeight * .1), ws=1)
+    cmds.xform('L_Reverse_Foot_Outer_Locator', t=(rigHeight * .083, 0, rigHeight * .05), ws=1)
+    cmds.xform('L_Reverse_Foot_Inner_Locator', t=(rigHeight * .035, 0, rigHeight * .05), ws=1)
+    cmds.xform('L_Reverse_Foot_Ball_Locator', t=(cmds.xform(leftFoot02Jnt, q=1, t=1, ws=1)), ws=1)
+    cmds.xform('L_Reverse_Foot_Ankle_Locator', t=(cmds.xform(leftFoot01Jnt, q=1, t=1, ws=1)), ws=1)
     cmds.parent(cogJnt, 'Skeleton')
 
 
@@ -150,6 +151,18 @@ def MirrorJoints(alreadyOriented):
     cmds.mirrorJoint("L_Clav_Jnt", myz=1, mirrorBehavior=1, sr=('L_', 'R_'))
     cmds.mirrorJoint("L_Leg_01_Jnt", myz=1, mirrorBehavior=1, sr=('L_', 'R_'))
     cmds.mirrorJoint("L_Eye_Jnt", myz=1, mirrorBehavior=0, sr=('L_', 'R_'))
+    # Mirror the locators for reverse IK foot
+    flipLocs = []
+    flipGrp = cmds.group(n='LocFlipGrp', w=1, em=1)
+    for locator in footLocators:
+        newLoc = cmds.duplicate(locator, n=locator.replace('L_', 'R_'))[0]
+        flipLocs.append(newLoc)
+        cmds.parent(newLoc, flipGrp)
+    cmds.xform(flipGrp, s=(-1, 1, 1))
+    for x in cmds.listRelatives(flipGrp, c=1):
+        cmds.parent(x, w=1)
+        # cmds.makeIdentity(x, r=1, a=1)
+    cmds.delete(flipGrp)
 
 
 # Create controls and add IKFK systems to limbs and spine
@@ -166,22 +179,25 @@ def ImplementIKFK():
     # Left Leg
     LLegIKFKCtrl = Controls.createControl('world', 'L_Leg_IKFK_Switch', rigHeight * .025, 17, 2, 0)
     cmds.xform(LLegIKFKCtrl + '_Grp', t=(rigHeight * .2, rigHeight * .27, rigHeight * -.04), ws=1)
-    IKFK.autoLimbTool('L_Leg_01_Jnt', 'L_Leg', 3, 1, 'L_Leg_IKFK_Switch_Ctrl', 0)
+    IKFK.autoLimbTool('L_Leg_01_Jnt', 'L_Leg', 6, 0, 'L_Leg_IKFK_Switch_Ctrl', 0)
+    cmds.ikHandle(n='L_Leg_IK_Handle', sj='L_Leg_01_Jnt_IK', ee='L_Leg_03_Jnt_IK', sol='ikRPsolver')
     # Right Leg
     RLegIKFKCtrl = Controls.createControl('world', 'R_Leg_IKFK_Switch', rigHeight * .025, 17, 2, 0)
     cmds.xform(RLegIKFKCtrl + '_Grp', t=(rigHeight * -.2, rigHeight * .27, rigHeight * -.04), ws=1)
-    IKFK.autoLimbTool('R_Leg_01_Jnt', 'R_Leg', 3, 1, 'R_Leg_IKFK_Switch_Ctrl', 0)
+    IKFK.autoLimbTool('R_Leg_01_Jnt', 'R_Leg', 6, 0, 'R_Leg_IKFK_Switch_Ctrl', 0)
+    cmds.ikHandle(n='R_Leg_IK_Handle', sj='R_Leg_01_Jnt_IK', ee='R_Leg_03_Jnt_IK', sol='ikRPsolver')
     # Spine
     SpineIKFKCtrl = Controls.createControl('world', 'Spine_IKFK_Switch', rigHeight * .025, 17, 2, 0)
     cmds.xform(SpineIKFKCtrl + '_Grp', t=(rigHeight * .15, rigHeight * .65, rigHeight * -.04), ws=1)
     IKFK.autoLimbTool('Spine_01_Jnt', 'Spine', 3, 0, 'Spine_IKFK_Switch_Ctrl', 0)
     SplineTools.CreateSplineFromJoint('Spine_01_Jnt_IK', 'Spine', 3)
-    cmds.group(SpineIKFKCtrl+'_Grp',
-               RArmIKFKCtrl+'_Grp',
-               LArmIKFKCtrl+'_Grp',
-               RLegIKFKCtrl+'_Grp',
-               LLegIKFKCtrl+'_Grp',
+    cmds.group(SpineIKFKCtrl + '_Grp',
+               RArmIKFKCtrl + '_Grp',
+               LArmIKFKCtrl + '_Grp',
+               RLegIKFKCtrl + '_Grp',
+               LLegIKFKCtrl + '_Grp',
                n='IKFK_Switches', w=1)
+
 
 def IKControls():
     print('Creating IK Controls...')
@@ -198,31 +214,44 @@ def IKControls():
     cmds.orientConstraint(CTRLJnt3, 'Spine_03_Jnt_IK', mo=1)
     Controls.createControl(CTRLJnt3, 'IK_Torso_Top', 1, 13, 1, 1)
     Controls.createControl(CTRLJnt2, 'IK_Torso_Mid', .85, 13, 1, 1)
-    #Create Limb IK Controls
+    # Create Limb IK Controls
     for prefix in ('L_', 'R_'):
         # Create Arm Controls
-        print('Creating '+prefix+' arm controls')
-        Controls.createControl(prefix+'Hand_Jnt', prefix+'Hand_IK', .5, 13, 0, 0)
-        cmds.parent(prefix+'Arm_IK_Handle', prefix+'Hand_IK_Ctrl')
-        pvCtrl = Controls.createControl(prefix+'Arm_02_Jnt_IK', prefix+'Arm_IK_PV', .25, 13, 1, 0)
-        offsetGrp = cmds.group(n=pvCtrl+'_OFFSET_Grp', w=1, em=1)
-        cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
-        cmds.parent(offsetGrp, pvCtrl+'_Grp')
-        cmds.parent(pvCtrl, offsetGrp)
-        cmds.xform(offsetGrp, t=(0, 0, rigHeight * -.2), ws=1, r=1)
-        cmds.poleVectorConstraint(pvCtrl, prefix+'Arm_IK_Handle')
-        # Legs
-        print('Creating '+prefix+' leg controls')
-        Controls.createControl('world', prefix+'Leg_IK_Control', .5, 13, 1, 0)
-        cmds.matchTransform(prefix+'Leg_IK_Control_Ctrl_Grp', prefix+'Leg_03_Jnt_IK', pos=1)
-        pvCtrl = Controls.createControl('world', prefix+'Leg_IK_PV', .25, 13, 0, 0)
+        print('Creating ' + prefix + ' arm controls')
+        Controls.createControl(prefix + 'Hand_Jnt', prefix + 'Hand_IK', .5, 13, 0, 0)
+        cmds.parent(prefix + 'Arm_IK_Handle', prefix + 'Hand_IK_Ctrl')
+        pvCtrl = Controls.createControl(prefix + 'Arm_02_Jnt_IK', prefix + 'Arm_IK_PV', .25, 13, 1, 0)
         offsetGrp = cmds.group(n=pvCtrl + '_OFFSET_Grp', w=1, em=1)
         cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
         cmds.parent(offsetGrp, pvCtrl + '_Grp')
         cmds.parent(pvCtrl, offsetGrp)
-        cmds.matchTransform(prefix+'Leg_IK_PV_Ctrl_Grp', prefix+'Leg_02_Jnt_IK', pos=1)
+        cmds.xform(offsetGrp, t=(0, 0, rigHeight * -.2), ws=1, r=1)
+        cmds.poleVectorConstraint(pvCtrl, prefix + 'Arm_IK_Handle')
+        # Legs
+        print('Creating ' + prefix + ' leg controls')
+        Controls.createControl('world', prefix + 'Leg_IK_Control', .5, 13, 1, 0)
+        cmds.matchTransform(prefix + 'Leg_IK_Control_Ctrl_Grp', prefix + 'Leg_03_Jnt_IK', pos=1)
+        pvCtrl = Controls.createControl('world', prefix + 'Leg_IK_PV', .25, 13, 0, 0)
+        offsetGrp = cmds.group(n=pvCtrl + '_OFFSET_Grp', w=1, em=1)
+        cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
+        cmds.parent(offsetGrp, pvCtrl + '_Grp')
+        cmds.parent(pvCtrl, offsetGrp)
+        cmds.matchTransform(prefix + 'Leg_IK_PV_Ctrl_Grp', prefix + 'Leg_02_Jnt_IK', pos=1)
         cmds.xform(offsetGrp, t=(0, 0, rigHeight * .2), ws=1, r=1)
-        cmds.poleVectorConstraint(pvCtrl, prefix+'Leg_IK_Handle')
+        cmds.poleVectorConstraint(pvCtrl, prefix + 'Leg_IK_Handle')
+        # Reverse Foot
+        ReverseFoot.CreateReverseFootSystem(prefix.replace('_', ''), rigHeight * .02)
+        cmds.ikHandle(sj=prefix + 'Foot_01_Jnt_IK',
+                      ee=prefix + 'Foot_02_Jnt_IK',
+                      n=prefix + 'Reverse_Foot_Ball_Handle',
+                      sol='ikSCsolver')
+        cmds.parent(prefix + 'Reverse_Foot_Ball_Handle', prefix + 'Reverse_Foot_Ball_Ctrl')
+        cmds.parent(prefix+'Leg_IK_Handle', prefix+'Reverse_Foot_Ball_Ctrl')
+        cmds.ikHandle(sj=prefix + 'Foot_02_Jnt_IK',
+                      ee=prefix + 'Foot_03_Jnt_IK',
+                      n=prefix + 'Reverse_Foot_Toe_Handle',
+                      sol='ikSCsolver')
+        cmds.parent(prefix + 'Reverse_Foot_Toe_Handle', prefix + 'Reverse_Foot_ToeTap_Ctrl')
 
 
 InitializeHeirarchy()
@@ -231,4 +260,3 @@ OrientSkeleton()
 MirrorJoints(True)
 ImplementIKFK()
 IKControls()
-ReverseFoot.CreateReverseFootSystem('L', rigHeight*.02)
