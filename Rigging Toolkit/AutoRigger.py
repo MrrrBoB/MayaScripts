@@ -8,12 +8,14 @@ import Controls
 import SplineTools
 import ColorChanger
 import ReverseFoot
+import BrokenFK
 
 importlib.reload(IKFK)
 importlib.reload(Controls)
 importlib.reload(SplineTools)
 importlib.reload(ColorChanger)
 importlib.reload(ReverseFoot)
+importlib.reload(BrokenFK)
 # AUTO RIGGER V0.1
 # ---------------------------------------------------------------
 height = 0
@@ -28,9 +30,28 @@ def InitializeHeirarchy():
     skeletonGroup = cmds.group(n='Skeleton', p=metaGroup, em=1)
     cmds.createDisplayLayer(n='Skeleton_Layer')
     deformersGroup = cmds.group(n='Deformers', p=metaGroup, em=1)
+    for grpName in ('Curves', 'Locators', 'IK_Handles', 'Twist_Systems'):
+        thisGrp = cmds.group(n=grpName, w=1, em=1)
+        cmds.parent(thisGrp, 'Deformers')
     ControlGroup = cmds.group(n='Controls', p=metaGroup, em=1)
     cmds.createDisplayLayer(n='Controls_Layer')
     cmds.select(cl=1)
+    for grpName in ('Spine', 'Leg', 'Arm', 'Head'):
+        thisGrp = cmds.group(n=grpName + '_Ctrls', w=1, em=1)
+        cmds.parent(thisGrp, 'Controls')
+        for subGrpName in ('IK', 'FK'):
+            if grpName == 'Head':
+                continue
+            thisSubGrp = cmds.group(n=grpName + '_' + subGrpName + '_Ctrls', em=1, w=1)
+            cmds.parent(thisSubGrp, thisGrp)
+            for subSubGrpName in ('L', 'R'):
+                if grpName == 'Spine':
+                    continue
+                thisSubSubGrp = cmds.group(n=subSubGrpName + '_' + thisSubGrp, em=1, w=1)
+                cmds.parent(thisSubSubGrp, thisSubGrp)
+    for prefix in ('L_', 'R_'):
+        handCtrlGrp = cmds.group(n=prefix + 'Hand_Ctrls', w=1, em=1)
+        cmds.parent(handCtrlGrp, 'Arm_Ctrls')
 
 
 def CreateHeightLocators():
@@ -197,6 +218,9 @@ def ImplementIKFK():
                RLegIKFKCtrl + '_Grp',
                LLegIKFKCtrl + '_Grp',
                n='IKFK_Switches', w=1)
+    cmds.parent('IKFK_Switches', 'Controls')
+    cmds.parent('Spine_Curve', 'Curves')
+    cmds.parent('Spine_Spline_IK_Handle', 'IK_Handles')
 
 
 def IKControls():
@@ -207,29 +231,34 @@ def IKControls():
     cmds.select(cl=1)
     CTRLJnt2 = cmds.joint(n='Spine_IK_Ctrl_Jnt_2', p=cmds.xform('Spine_02_Jnt', q=1, t=1, ws=1), radius=10)
     ColorChanger.changeColor([CTRLJnt2, CTRLJnt3], 18)
-    cmds.group()
+    cmds.group(CTRLJnt3, CTRLJnt2, n='Spine_Ctrl_Jnts')
+    cmds.parent('Spine_Ctrl_Jnts', 'Deformers')
     cmds.select((CTRLJnt3, CTRLJnt2, 'CoG_Jnt'), r=1)
     cmds.select('Spine_Curve', add=1)
     cmds.skinCluster(('CoG_Jnt', CTRLJnt2, CTRLJnt3), 'Spine_Curve', tsb=1, bm=0, sm=0, nw=1)
     cmds.orientConstraint(CTRLJnt3, 'Spine_03_Jnt_IK', mo=1)
-    Controls.createControl(CTRLJnt3, 'IK_Torso_Top', 1, 13, 1, 1)
-    Controls.createControl(CTRLJnt2, 'IK_Torso_Mid', .85, 13, 1, 1)
+    Controls.createControl(CTRLJnt3, 'IK_Torso_Top', rigHeight * .1, 13, 1, 1)
+    Controls.createControl(CTRLJnt2, 'IK_Torso_Mid', rigHeight * .085, 13, 1, 1)
     # Create Limb IK Controls
     for prefix in ('L_', 'R_'):
         # Create Arm Controls
-        print('Creating ' + prefix + ' arm controls')
-        Controls.createControl(prefix + 'Hand_Jnt', prefix + 'Hand_IK', .5, 13, 0, 0)
+        print('Creating ' + prefix + ' arm IK controls')
+        handleCtrl = Controls.createControl(prefix + 'Hand_Jnt', prefix + 'Hand_IK', rigHeight * .05, 13, 0, 0)
         cmds.parent(prefix + 'Arm_IK_Handle', prefix + 'Hand_IK_Ctrl')
-        pvCtrl = Controls.createControl(prefix + 'Arm_02_Jnt_IK', prefix + 'Arm_IK_PV', .25, 13, 1, 0)
+        pvCtrl = Controls.createControl(prefix + 'Arm_02_Jnt_IK', prefix + 'Arm_IK_PV', rigHeight * .025, 13, 1, 0)
         offsetGrp = cmds.group(n=pvCtrl + '_OFFSET_Grp', w=1, em=1)
         cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
         cmds.parent(offsetGrp, pvCtrl + '_Grp')
         cmds.parent(pvCtrl, offsetGrp)
         cmds.xform(offsetGrp, t=(0, 0, rigHeight * -.2), ws=1, r=1)
         cmds.poleVectorConstraint(pvCtrl, prefix + 'Arm_IK_Handle')
+        cmds.parent(handleCtrl + '_Grp', prefix + 'Arm_IK_Ctrls')
+        cmds.connectAttr(prefix + 'Arm_IKFK_Reverse.outputX', handleCtrl + '.visibility')
+        cmds.parent(pvCtrl + '_Grp', prefix + 'Arm_IK_Ctrls')
+        cmds.connectAttr(prefix + 'Arm_IKFK_Reverse.outputX', pvCtrl + '.visibility')
         # Legs
         print('Creating ' + prefix + ' leg controls')
-        Controls.createControl('world', prefix + 'Leg_IK_Control', .5, 13, 1, 0)
+        thisLegIKCtrl = Controls.createControl('world', prefix + 'Leg_IK_Control', .5, 13, 1, 0)
         cmds.matchTransform(prefix + 'Leg_IK_Control_Ctrl_Grp', prefix + 'Leg_03_Jnt_IK', pos=1)
         pvCtrl = Controls.createControl('world', prefix + 'Leg_IK_PV', .25, 13, 0, 0)
         offsetGrp = cmds.group(n=pvCtrl + '_OFFSET_Grp', w=1, em=1)
@@ -246,13 +275,163 @@ def IKControls():
                       n=prefix + 'Reverse_Foot_Ball_Handle',
                       sol='ikSCsolver')
         cmds.parent(prefix + 'Reverse_Foot_Ball_Handle', prefix + 'Reverse_Foot_Ball_Ctrl')
-        cmds.parent(prefix+'Leg_IK_Handle', prefix+'Reverse_Foot_Ball_Ctrl')
+        cmds.parent(prefix + 'Leg_IK_Handle', prefix + 'Reverse_Foot_Ball_Ctrl')
         cmds.ikHandle(sj=prefix + 'Foot_02_Jnt_IK',
                       ee=prefix + 'Foot_03_Jnt_IK',
                       n=prefix + 'Reverse_Foot_Toe_Handle',
                       sol='ikSCsolver')
         cmds.parent(prefix + 'Reverse_Foot_Toe_Handle', prefix + 'Reverse_Foot_ToeTap_Ctrl')
+        cmds.parent(prefix + 'Reverse_Foot_Outer_Ctrl_Grp', prefix + 'Leg_IK_Control_Ctrl')
+        cmds.parent(thisLegIKCtrl + '_Grp', prefix + 'Leg_IK_Ctrls')
+        cmds.parent(pvCtrl + '_Grp', prefix + 'Leg_IK_Ctrls')
+    cmds.parent('IK_Torso_Top_Ctrl_Grp', 'Spine_IK_Ctrls')
+    cmds.parent('IK_Torso_Mid_Ctrl_Grp', 'Spine_IK_Ctrls')
+    cmds.connectAttr('Spine_IKFK_Reverse.outputX', 'IK_Torso_Mid_Ctrl.visibility')
+    cmds.connectAttr('Spine_IKFK_Reverse.outputX', 'IK_Torso_Top_Ctrl.visibility')
 
+
+def FKControls():
+    print('Creating FK Controls...')
+    print('Spine FK')
+    lastControl = ''
+    for i in range(3):
+        thisControl = Controls.createWorldRotationControl('Spine_0' + str(i + 1) + '_Jnt_FK',
+                                                          'Spine_0' + str(i + 1) + '_FK',
+                                                          rigHeight * .1,
+                                                          6,
+                                                          1,
+                                                          1,
+                                                          1)
+        if i > 0:
+            BrokenFK.BrokenConnect('Spine_0' + str(i) + '_FK_Ctrl', 'Spine_0' + str(i + 1) + '_FK_Ctrl')
+        cmds.parent(thisControl + '_Grp', 'Spine_FK_Ctrls')
+        cmds.connectAttr('Spine_IKFK_Switch_Ctrl.Spine_IKFK', thisControl + '.visibility')
+    for prefix in ('L_', 'R_'):
+        print('Creating ' + prefix + ' arm FK controls')
+        lastControl = Controls.createControl(prefix + 'Clav_Jnt', prefix + 'Clav', rigHeight * .06, 17, 0, 1)
+        BrokenFK.BrokenConnect('Spine_03_Jnt', prefix + 'Clav_Ctrl')
+        cmds.parent(lastControl + '_Grp', 'Arm_Ctrls')
+        # FK Arms
+        for i in range(1, 4):
+            currentControl = Controls.createControl(prefix + 'Arm_0' + str(i) + '_Jnt_FK',
+                                                    prefix + 'Arm_0' + str(i) + '_FK',
+                                                    rigHeight * .05,
+                                                    6,
+                                                    0,
+                                                    1)
+            BrokenFK.BrokenConnect(lastControl, currentControl)
+            cmds.connectAttr(prefix + 'Arm_IKFK_Switch_Ctrl.' + prefix + 'Arm_IKFK', currentControl + '.visibility')
+            lastControl = currentControl
+            cmds.parent(currentControl + '_Grp', prefix + 'Arm_FK_Ctrls')
+        print('Creating ' + prefix + ' Leg FK controls')
+        lastControl = 'Pelvis_Jnt'
+        # FK Legs
+        for i in range(1, 4):
+            currentControl = Controls.createControl(prefix + 'Leg_0' + str(i) + '_Jnt_FK',
+                                                    prefix + 'Leg_0' + str(i) + '_FK',
+                                                    rigHeight * .07,
+                                                    6,
+                                                    0,
+                                                    1)
+            BrokenFK.BrokenConnect(lastControl, currentControl)
+            cmds.connectAttr(prefix + 'Leg_IKFK_Switch_Ctrl.' + prefix + 'Leg_IKFK', currentControl + '.visibility')
+            lastControl = currentControl
+            cmds.parent(currentControl + '_Grp', prefix + 'Leg_FK_Ctrls')
+        lastControl = prefix + 'Leg_03_Jnt_FK'
+        print('Creating ' + prefix + ' Foot FK controls')
+        # FK Feet
+        for i in range(2, 4):
+            currentControl = Controls.createControl(prefix + 'Foot_0' + str(i) + '_Jnt_FK',
+                                                    prefix + 'Foot_0' + str(i) + '_FK',
+                                                    rigHeight * .03,
+                                                    6,
+                                                    0,
+                                                    1)
+            BrokenFK.BrokenConnect(lastControl, currentControl)
+            cmds.connectAttr(prefix + 'Leg_IKFK_Switch_Ctrl.' + prefix + 'Leg_IKFK', currentControl + '.visibility')
+            lastControl = currentControl
+            cmds.parent(currentControl + '_Grp', prefix + 'Leg_FK_Ctrls')
+        print('Creating ' + prefix + ' Hand controls')
+        # Fingers
+        for fingerName in ('PointerFinger', 'MiddleFinger', 'RingFinger', 'Pinky'):
+            fingerCtrlGrp = cmds.group(n=fingerName + '_Ctrls', w=1, em=1)
+            lastControl = prefix + 'Hand_Jnt'
+            for i in range(1, 4):
+                currentControl = Controls.createControl(prefix + fingerName + '_0' + str(i) + '_Jnt',
+                                                        prefix + fingerName + '_0' + str(i),
+                                                        rigHeight * .007,
+                                                        17,
+                                                        0,
+                                                        1)
+                BrokenFK.BrokenConnect(lastControl, currentControl)
+                lastControl = currentControl
+                cmds.parent(currentControl + '_Grp', fingerCtrlGrp)
+            cmds.parent(fingerCtrlGrp, prefix + 'Hand_Ctrls')
+        lastControl = prefix + 'Hand_Jnt'
+        fingerCtrlGrp = cmds.group(n='Thumb_Ctrls', w=1, em=1)
+        for thumbJointName in ('Base', '01', '02'):
+            currentControl = Controls.createControl(prefix + 'Thumb_' + thumbJointName + '_Jnt',
+                                                    prefix + 'Thumb_' + thumbJointName,
+                                                    rigHeight * .01,
+                                                    17,
+                                                    0,
+                                                    1)
+            BrokenFK.BrokenConnect(lastControl, currentControl)
+            lastControl = currentControl
+            cmds.parent(currentControl + '_Grp', fingerCtrlGrp)
+        cmds.parent(fingerCtrlGrp, prefix + 'Hand_Ctrls')
+
+
+def HybridHands():
+    for prefix in ('L_', 'R_'):
+        constraint = \
+            cmds.parentConstraint(prefix + 'Hand_IK_Ctrl', prefix + 'Arm_03_FK_Ctrl', prefix + 'Hand_Jnt', mo=1)[0]
+        cmds.connectAttr(prefix + 'Arm_IKFK_Reverse.outputX', constraint + '.' + prefix + 'Hand_IK_CtrlW0')
+        cmds.connectAttr(prefix + 'Arm_IKFK_Switch_Ctrl.' + prefix + 'Arm_IKFK',
+                         constraint + '.' + prefix + 'Arm_03_FK_CtrlW1')
+
+
+def HeadCtrls():
+    neckControl = Controls.createControl('Neck_Jnt', 'Neck', rigHeight * .04, 17, 0, 1)
+    cmds.select(cl=1)
+    for i in range(8):
+        cmds.select(neckControl + '.cv[' + str(i) + ']', add=1)
+    cmds.move(rigHeight * .03, 0, 0, wd=1, os=1, r=1)
+    cmds.parent(neckControl + '_Grp', 'Head_Ctrls')
+    headControl = Controls.createControl('Head_Jnt', 'Head', rigHeight*.06, 17, 1, 1)
+    cmds.select(cl=1)
+    for i in range(8):
+        cmds.select(headControl + '.cv[' + str(i) + ']', add=1)
+    cmds.move(0, rigHeight*.09, 0, wd=1, os=1, r=1)
+    jawControl = Controls.createControl('Jaw_Jnt', 'Jaw', rigHeight * .05, 17, 1, 1)
+    cmds.parent(headControl+'_Grp', 'Head_Ctrls')
+    cmds.select(cl=1)
+    for i in range(8):
+        cmds.select(jawControl + '.cv[' + str(i) + ']', add=1)
+    cmds.move(0, rigHeight * -.02, rigHeight * .02, wd=1, os=1, r=1)
+    cmds.rotate(25, 0, 0, r=1, os=1, fo=1)
+    cmds.scale(.75, 1, 1, r=1)
+    cmds.select(cl=1)
+    cmds.parent(jawControl + '_Grp', 'Head_Ctrls')
+    EyeMainControl = Controls.createControl('world', 'Eye_Target_Main', rigHeight * .04, 17, 2, 0)
+    cmds.xform(EyeMainControl + '_Grp', t=(0, cmds.xform('L_Eye_Jnt', q=1, t=1, ws=1)[1], rigHeight * .2), ws=1)
+    cmds.xform(EyeMainControl, s=(1, .5, 1))
+    cmds.makeIdentity(EyeMainControl, s=1, a=1)
+    cmds.parent(EyeMainControl + '_Grp', 'Head_Ctrls')
+    for prefix in ('L_', 'R_'):
+        thisUpLocator = cmds.spaceLocator(n=prefix + 'Eye_Aim_Up_Loc')
+        cmds.matchTransform(thisUpLocator, prefix + 'Eye_Jnt')
+        cmds.xform(thisUpLocator, t=(0, rigHeight * .05, 0), r=1)
+        cmds.parentConstraint('Head_Jnt', thisUpLocator, mo=1)
+        aimCtrl = Controls.createControl(prefix + 'Eye_Jnt', prefix + 'Eye_Aim_Ctrl', rigHeight * .012, 14, 2, 0)
+        cmds.xform(aimCtrl, t=(0, 0, (rigHeight * .2) - cmds.xform(prefix + 'Eye_Jnt', q=1, t=1, ws=1)[2]), r=1)
+        BrokenFK.BrokenConnect(EyeMainControl, aimCtrl)
+        cmds.aimConstraint(aimCtrl, prefix + 'Eye_Jnt', wut='object', wuo=thisUpLocator[0], aim=(0, 0, 1), u=(0, 1, 0))
+        cmds.parent(aimCtrl+'_Grp', 'Head_Ctrls')
+        cmds.parent(thisUpLocator, 'Locators')
+    BrokenFK.BrokenConnect('Spine_03_Jnt', neckControl)
+    BrokenFK.BrokenConnect(neckControl, headControl)
+    BrokenFK.BrokenConnect(headControl, jawControl)
 
 InitializeHeirarchy()
 CreateHumanoidSkeletonTemplate()
@@ -260,3 +439,6 @@ OrientSkeleton()
 MirrorJoints(True)
 ImplementIKFK()
 IKControls()
+FKControls()
+HeadCtrls()
+HybridHands()
