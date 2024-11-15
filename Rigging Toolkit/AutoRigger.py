@@ -9,6 +9,9 @@ import SplineTools
 import ColorChanger
 import ReverseFoot
 import BrokenFK
+import SpaceSwapping
+import TwistRollJoints
+import IKStretchyLimbs as Stretch
 
 importlib.reload(IKFK)
 importlib.reload(Controls)
@@ -16,6 +19,9 @@ importlib.reload(SplineTools)
 importlib.reload(ColorChanger)
 importlib.reload(ReverseFoot)
 importlib.reload(BrokenFK)
+importlib.reload(SpaceSwapping)
+importlib.reload(TwistRollJoints)
+importlib.reload(Stretch)
 # AUTO RIGGER V0.1
 # ---------------------------------------------------------------
 height = 0
@@ -30,7 +36,7 @@ def InitializeHeirarchy():
     skeletonGroup = cmds.group(n='Skeleton', p=metaGroup, em=1)
     cmds.createDisplayLayer(n='Skeleton_Layer')
     deformersGroup = cmds.group(n='Deformers', p=metaGroup, em=1)
-    for grpName in ('Curves', 'Locators', 'IK_Handles', 'Twist_Systems'):
+    for grpName in ('Curves', 'Locators', 'IK_Handles', 'Twist_Systems', 'Stretch_Locators'):
         thisGrp = cmds.group(n=grpName, w=1, em=1)
         cmds.parent(thisGrp, 'Deformers')
     ControlGroup = cmds.group(n='Controls', p=metaGroup, em=1)
@@ -52,6 +58,7 @@ def InitializeHeirarchy():
     for prefix in ('L_', 'R_'):
         handCtrlGrp = cmds.group(n=prefix + 'Hand_Ctrls', w=1, em=1)
         cmds.parent(handCtrlGrp, 'Arm_Ctrls')
+    cmds.setAttr(deformersGroup + '.visibility', 0)
 
 
 def CreateHeightLocators():
@@ -257,9 +264,9 @@ def IKControls():
         cmds.parent(pvCtrl + '_Grp', prefix + 'Arm_IK_Ctrls')
         cmds.connectAttr(prefix + 'Arm_IKFK_Reverse.outputX', pvCtrl + '.visibility')
         # Legs
-        print('Creating ' + prefix + ' leg controls')
-        thisLegIKCtrl = Controls.createControl('world', prefix + 'Leg_IK_Control', .5, 13, 1, 0)
-        cmds.matchTransform(prefix + 'Leg_IK_Control_Ctrl_Grp', prefix + 'Leg_03_Jnt_IK', pos=1)
+        print('Creating ' + prefix + ' leg IK controls')
+        thisLegIKCtrl = Controls.createControl('world', prefix + 'Leg_IK', .5, 13, 1, 0)
+        cmds.matchTransform(prefix + 'Leg_IK_Ctrl_Grp', prefix + 'Leg_03_Jnt_IK', pos=1)
         pvCtrl = Controls.createControl('world', prefix + 'Leg_IK_PV', .25, 13, 0, 0)
         offsetGrp = cmds.group(n=pvCtrl + '_OFFSET_Grp', w=1, em=1)
         cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
@@ -281,7 +288,7 @@ def IKControls():
                       n=prefix + 'Reverse_Foot_Toe_Handle',
                       sol='ikSCsolver')
         cmds.parent(prefix + 'Reverse_Foot_Toe_Handle', prefix + 'Reverse_Foot_ToeTap_Ctrl')
-        cmds.parent(prefix + 'Reverse_Foot_Outer_Ctrl_Grp', prefix + 'Leg_IK_Control_Ctrl')
+        cmds.parent(prefix + 'Reverse_Foot_Outer_Ctrl_Grp', prefix + 'Leg_IK_Ctrl')
         cmds.parent(thisLegIKCtrl + '_Grp', prefix + 'Leg_IK_Ctrls')
         cmds.parent(pvCtrl + '_Grp', prefix + 'Leg_IK_Ctrls')
     cmds.parent('IK_Torso_Top_Ctrl_Grp', 'Spine_IK_Ctrls')
@@ -398,13 +405,13 @@ def HeadCtrls():
         cmds.select(neckControl + '.cv[' + str(i) + ']', add=1)
     cmds.move(rigHeight * .03, 0, 0, wd=1, os=1, r=1)
     cmds.parent(neckControl + '_Grp', 'Head_Ctrls')
-    headControl = Controls.createControl('Head_Jnt', 'Head', rigHeight*.06, 17, 1, 1)
+    headControl = Controls.createControl('Head_Jnt', 'Head', rigHeight * .06, 17, 1, 1)
     cmds.select(cl=1)
     for i in range(8):
         cmds.select(headControl + '.cv[' + str(i) + ']', add=1)
-    cmds.move(0, rigHeight*.09, 0, wd=1, os=1, r=1)
+    cmds.move(0, rigHeight * .09, 0, wd=1, os=1, r=1)
     jawControl = Controls.createControl('Jaw_Jnt', 'Jaw', rigHeight * .05, 17, 1, 1)
-    cmds.parent(headControl+'_Grp', 'Head_Ctrls')
+    cmds.parent(headControl + '_Grp', 'Head_Ctrls')
     cmds.select(cl=1)
     for i in range(8):
         cmds.select(jawControl + '.cv[' + str(i) + ']', add=1)
@@ -427,11 +434,98 @@ def HeadCtrls():
         cmds.xform(aimCtrl, t=(0, 0, (rigHeight * .2) - cmds.xform(prefix + 'Eye_Jnt', q=1, t=1, ws=1)[2]), r=1)
         BrokenFK.BrokenConnect(EyeMainControl, aimCtrl)
         cmds.aimConstraint(aimCtrl, prefix + 'Eye_Jnt', wut='object', wuo=thisUpLocator[0], aim=(0, 0, 1), u=(0, 1, 0))
-        cmds.parent(aimCtrl+'_Grp', 'Head_Ctrls')
+        cmds.parent(aimCtrl + '_Grp', 'Head_Ctrls')
         cmds.parent(thisUpLocator, 'Locators')
     BrokenFK.BrokenConnect('Spine_03_Jnt', neckControl)
     BrokenFK.BrokenConnect(neckControl, headControl)
     BrokenFK.BrokenConnect(headControl, jawControl)
+
+
+def MetaControls():
+    transformControl = Controls.createControl('world', 'Transform', rigHeight * .3, 17, 1, 0)
+    cogCtrl = Controls.createControl('CoG_Jnt', 'CoG', rigHeight * .2, 17, 1, 1)
+    BrokenFK.BrokenConnect(transformControl, cogCtrl)
+    BrokenFK.BrokenConnect(cogCtrl, 'Spine_01_FK_Ctrl')
+    cmds.parent(transformControl + '_Grp', 'Controls')
+    cmds.parent(cogCtrl + '_Grp', 'Controls')
+    cmds.addAttr(transformControl, ln='Master_Scale', at='float', min=0, max=10, dv=1, k=1)
+    for axis in ('X', 'Y', 'Z'):
+        cmds.connectAttr(transformControl+'.Master_Scale', 'Controls.scale%s' % axis)
+    cmds.scaleConstraint('Controls', 'Skeleton')
+
+
+def SpaceSwapIK():
+    print('Creating IK Swap Spaces For...')
+    SpaceSwapping.CreateSpaceSet(('TESTRIG', 'Transform_Ctrl', 'CoG_Ctrl', 'L_Clav_Ctrl'), 'L_Hand_IK_Ctrl')
+    print('L_Arm')
+    SpaceSwapping.CreateSpaceSet(('TESTRIG', 'Transform_Ctrl', 'CoG_Ctrl', 'R_Clav_Ctrl'), 'R_Hand_IK_Ctrl')
+    print('R_Arm')
+    SpaceSwapping.CreateSpaceSet(('TESTRIG', 'Transform_Ctrl', 'CoG_Ctrl'), 'L_Leg_IK_Ctrl')
+    print('L_Leg')
+    SpaceSwapping.CreateSpaceSet(('TESTRIG', 'Transform_Ctrl', 'CoG_Ctrl'), 'R_Leg_IK_Ctrl')
+    print('R_Leg')
+    # IKPVs
+    SpaceSwapping.CreateSpaceSetAttributeOverride(('TESTRIG',
+                                                   'Transform_Ctrl',
+                                                   'CoG_Ctrl',
+                                                   'L_Clav_Ctrl',
+                                                   'L_Hand_IK_Ctrl'), 'L_Arm_IK_PV_Ctrl_OFFSET_Grp', 'L_Arm_IK_PV_Ctrl')
+    SpaceSwapping.CreateSpaceSetAttributeOverride(('TESTRIG',
+                                                   'Transform_Ctrl',
+                                                   'CoG_Ctrl',
+                                                   'R_Clav_Ctrl',
+                                                   'R_Hand_IK_Ctrl'), 'R_Arm_IK_PV_Ctrl_OFFSET_Grp', 'R_Arm_IK_PV_Ctrl')
+    SpaceSwapping.CreateSpaceSetAttributeOverride(('TESTRIG', 'Transform_Ctrl', 'CoG_Ctrl', 'L_Leg_IK_Ctrl'),
+                                                  'L_Leg_IK_PV_Ctrl_OFFSET_Grp', 'L_Leg_IK_PV_Ctrl')
+    SpaceSwapping.CreateSpaceSetAttributeOverride(('TESTRIG', 'Transform_Ctrl', 'CoG_Ctrl', 'R_Leg_IK_Ctrl'),
+                                                  'R_Leg_IK_PV_Ctrl_OFFSET_Grp', 'R_Leg_IK_PV_Ctrl')
+    print('Creating Spline SpaceSwapping')
+    SpaceSwapping.CreateSpaceSet(('TESTRIG',
+                                  'Transform_Ctrl',
+                                  'CoG_Ctrl'), 'IK_Torso_Top_Ctrl')
+    SpaceSwapping.AddInBetweenSpaceSet('CoG_Ctrl', 'IK_Torso_Top_Ctrl', 'IK_Torso_Mid_Ctrl')
+
+
+def IKLimbStretch():
+    for prefix in ('L_', 'R_'):
+        Stretch.CreateIKStretch(prefix+'Arm_01_Jnt_IK', prefix+'Clav_Ctrl', prefix+'Hand_IK_Ctrl', 3, 0, 1)
+        cmds.connectAttr('Transform_Ctrl.Master_Scale', prefix+'Hand_IKMaster_Scalar_MD.input2X')
+        cmds.parent(prefix + 'Arm_01_Jnt_IK_baseStretch_Loc', 'Stretch_Locators')
+        cmds.parent(prefix + 'Arm_01_Jnt_IK_endStretch_Loc', 'Stretch_Locators')
+        Stretch.CreateIKStretchNumJoints(prefix + 'Leg_01_Jnt_IK', 3, 'Pelvis_Jnt', prefix + 'Leg_IK_Ctrl', 3, 0, 1)
+        cmds.connectAttr('Transform_Ctrl.Master_Scale', prefix+'Leg_IKMaster_Scalar_MD.input2X')
+        cmds.parent(prefix + 'Leg_01_Jnt_IK_baseStretch_Loc', 'Stretch_Locators')
+        cmds.parent(prefix + 'Leg_01_Jnt_IK_endStretch_Loc', 'Stretch_Locators')
+
+def TwistJoints():
+    print('Implementing twist joints...')
+    for prefix in ('L_', 'R_'):
+        if prefix == 'L_':
+            zDir = 1
+        else:
+            zDir = -1
+        # Arm Ends
+        TwistRollJoints.CreateTwistJoint(prefix + 'Arm', 1, prefix + 'Arm_02_Jnt', prefix + 'Hand_Jnt', 3,
+                                         rigHeight * .08, zDir, 1)
+        # Arm Shoulders
+        TwistRollJoints.CreateShoulderTwistJoint(prefix + 'Shoulder', 1, prefix + 'Arm_01_Jnt',
+                                                 prefix + 'Arm_02_Jnt', 3,
+                                                 rigHeight * .1, zDir, 0)
+        TwistRollJoints.CreateTwistJoint(prefix + 'Leg', 1, prefix + 'Leg_02_Jnt', prefix + 'Foot_01_Jnt', 3,
+                                         rigHeight * -.08, zDir, 1)
+        TwistRollJoints.CreateShoulderTwistJoint(prefix + 'Hip', 1, prefix + 'Leg_01_Jnt', prefix + 'Leg_02_Jnt', 3,
+                                                 rigHeight * -.1, zDir, 0)
+        cmds.parent(prefix + 'Shoulder_Master_Grp', 'Twist_Systems')
+        cmds.parent(prefix + 'Arm_Twist_Loc_Grp_Lower', 'Twist_Systems')
+        cmds.parent(prefix + 'Hip_Master_Grp', 'Twist_Systems')
+        cmds.parent(prefix + 'Leg_Twist_Loc_Grp_Lower', 'Twist_Systems')
+
+
+def FixSegmentScaleCompensate():
+    jointList = cmds.ls(type='joint')
+    for joint in jointList:
+        cmds.setAttr('%s.segmentScaleCompensate' % joint, 0)
+
 
 InitializeHeirarchy()
 CreateHumanoidSkeletonTemplate()
@@ -442,3 +536,8 @@ IKControls()
 FKControls()
 HeadCtrls()
 HybridHands()
+MetaControls()
+SpaceSwapIK()
+IKLimbStretch()
+TwistJoints()
+FixSegmentScaleCompensate()
