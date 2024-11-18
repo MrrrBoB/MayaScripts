@@ -4,7 +4,8 @@ int $theArraySize = size($theJoints);
 for ( $i = 0 ; $i < $theArraySize; $i++ )
 {
     $theCircleName = $theJoints[$i] + "_CTRL";
-    circle -n $theCircleName;
+    //here's the ctrl size    V
+    circle -n $theCircleName -r 3;
     $theCircle = `ls -sl`;
     $theGroupName = $theJoints[$i] + "_GRP";
     group -n $theGroupName; 

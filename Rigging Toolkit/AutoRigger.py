@@ -452,6 +452,11 @@ def MetaControls():
     for axis in ('X', 'Y', 'Z'):
         cmds.connectAttr(transformControl+'.Master_Scale', 'Controls.scale%s' % axis)
     cmds.scaleConstraint('Controls', 'Skeleton')
+    # IKFK Controls
+    for prefix in ('L_', 'R_'):
+        for limb in ('Arm', 'Leg'):
+            BrokenFK.BrokenConnect(transformControl, prefix+limb+'_IKFK_Switch_Ctrl')
+    BrokenFK.BrokenConnect(transformControl, 'Spine_IKFK_Switch_Ctrl')
 
 
 def SpaceSwapIK():
@@ -479,6 +484,8 @@ def SpaceSwapIK():
                                                   'L_Leg_IK_PV_Ctrl_OFFSET_Grp', 'L_Leg_IK_PV_Ctrl')
     SpaceSwapping.CreateSpaceSetAttributeOverride(('TESTRIG', 'Transform_Ctrl', 'CoG_Ctrl', 'R_Leg_IK_Ctrl'),
                                                   'R_Leg_IK_PV_Ctrl_OFFSET_Grp', 'R_Leg_IK_PV_Ctrl')
+    SpaceSwapping.CreateSpaceSet(('TESTRIG', 'Transform_Ctrl', 'CoG_Ctrl', 'Head_Ctrl'), 'Eye_Target_Main_Ctrl')
+    cmds.setAttr('Eye_Target_Main_Ctrl.Local_Space', 1)
     print('Creating Spline SpaceSwapping')
     SpaceSwapping.CreateSpaceSet(('TESTRIG',
                                   'Transform_Ctrl',
@@ -488,14 +495,19 @@ def SpaceSwapIK():
 
 def IKLimbStretch():
     for prefix in ('L_', 'R_'):
-        Stretch.CreateIKStretch(prefix+'Arm_01_Jnt_IK', prefix+'Clav_Ctrl', prefix+'Hand_IK_Ctrl', 3, 0, 1)
+        if prefix == 'R_':
+            mirrored = 1
+        else:
+            mirrored = 0
+        Stretch.CreateIKStretch(prefix+'Arm_01_Jnt_IK', prefix+'Clav_Ctrl', prefix+'Hand_IK_Ctrl', 3, mirrored, 1)
         cmds.connectAttr('Transform_Ctrl.Master_Scale', prefix+'Hand_IKMaster_Scalar_MD.input2X')
         cmds.parent(prefix + 'Arm_01_Jnt_IK_baseStretch_Loc', 'Stretch_Locators')
         cmds.parent(prefix + 'Arm_01_Jnt_IK_endStretch_Loc', 'Stretch_Locators')
-        Stretch.CreateIKStretchNumJoints(prefix + 'Leg_01_Jnt_IK', 3, 'Pelvis_Jnt', prefix + 'Leg_IK_Ctrl', 3, 0, 1)
+        Stretch.CreateIKStretchNumJoints(prefix + 'Leg_01_Jnt_IK', 3, 'Pelvis_Jnt', prefix + 'Leg_IK_Ctrl', 3, mirrored, 1)
         cmds.connectAttr('Transform_Ctrl.Master_Scale', prefix+'Leg_IKMaster_Scalar_MD.input2X')
         cmds.parent(prefix + 'Leg_01_Jnt_IK_baseStretch_Loc', 'Stretch_Locators')
         cmds.parent(prefix + 'Leg_01_Jnt_IK_endStretch_Loc', 'Stretch_Locators')
+
 
 def TwistJoints():
     print('Implementing twist joints...')
@@ -527,7 +539,11 @@ def FixSegmentScaleCompensate():
         cmds.setAttr('%s.segmentScaleCompensate' % joint, 0)
 
 
-InitializeHeirarchy()
+def CleanUp():
+    cmds.delete('Base_Locator', 'Top_Locator')
+
+
+'''InitializeHeirarchy()
 CreateHumanoidSkeletonTemplate()
 OrientSkeleton()
 MirrorJoints(True)
@@ -541,3 +557,4 @@ SpaceSwapIK()
 IKLimbStretch()
 TwistJoints()
 FixSegmentScaleCompensate()
+CleanUp()'''

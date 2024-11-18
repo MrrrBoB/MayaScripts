@@ -57,7 +57,7 @@ global proc ScatterUI()
                         -resizeToFitChildren 1
                         $scatterW`;
         string $swColumn = `columnLayout -parent $scatterW -adjustableColumn 1`;
-            optionVar -stringValue "duplicationCountFld" `intField -ann "Times to duplicate" -parent $swColumn -placeholderText "Duplications"`;
+            optionVar -stringValue "duplicationCountFld" `intField -ann "Times to duplicate" -parent $swColumn`;
             optionVar -stringValue "AxisXParams" `floatFieldGrp -parent $swColumn -nf 2 -l "X Params"`;
             optionVar -stringValue "AxisYParams" `floatFieldGrp -parent $swColumn -nf 2 -l "Y Params"`;
             optionVar -stringValue "AxisZParams" `floatFieldGrp -parent $swColumn -nf 2 -l "Z Params"`;
