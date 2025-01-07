@@ -18,6 +18,7 @@ def CreateSpaceSwapFromSelection():
     for i in range(1, len(spaces)):
         enumString += ":" + spaces[i]
     print(enumString)
+    cmds.addAttr(theControl, at='enum', nn='____________', ln='SpaceSwapDivider', en='LOCAL TO', k=1)
     cmds.addAttr(theControl, ln="Local_Space", at='enum', en=enumString, k=1)
     theConstraint = cmds.parentConstraint(*spaces, theControlGrp, mo=1, weight=1)[0]
     cmds.setAttr(theControl + '.Local_Space', 0)
@@ -41,6 +42,7 @@ def CreateSpaceSet(spaces, AffectedObject):
     enumString = "World"
     for i in range(1, len(spaces)):
         enumString += ":" + spaces[i]
+    cmds.addAttr(AffectedObject, at='enum', nn='____________', ln='SpaceSwapDivider', en='LOCAL TO', k=1)
     cmds.addAttr(AffectedObject, ln="Local_Space", at='enum', en=enumString, k=1)
     theConstraint = cmds.parentConstraint(*spaces, theControlGrp, mo=1, weight=1)[0]
     cmds.setAttr(AffectedObject + '.Local_Space', 0)
@@ -56,12 +58,13 @@ def CreateSpaceSet(spaces, AffectedObject):
                                    at=constraintWeights[selectedDrivenIndex])
     #cmds.setAttr(AffectedObject + '.Local_Space', 0)
 
-
+# same as CreateSpaceSet, but puts the selection attribute on a specific object
 def CreateSpaceSetAttributeOverride(spaces, AffectedObject, OverrideAttributeObject):
     theControlGrp = cmds.listRelatives(AffectedObject, p=1)[0]
     enumString = "World"
     for i in range(1, len(spaces)):
         enumString += ":" + spaces[i]
+    cmds.addAttr(OverrideAttributeObject, at='enum', nn='____________', ln='SpaceSwapDivider', en='LOCAL TO', k=1)
     cmds.addAttr(OverrideAttributeObject, ln="Local_Space", at='enum', en=enumString, k=1)
     theConstraint = cmds.parentConstraint(*spaces, theControlGrp, mo=1, weight=1)[0]
     cmds.setAttr(OverrideAttributeObject + '.Local_Space', 0)

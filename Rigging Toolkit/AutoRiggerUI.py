@@ -4,6 +4,9 @@ sys.path.append('F:\SchoolMore\pythonProject\Rigging Toolkit')
 import AutoRigger as AR
 
 
+alreadyOriented = False
+
+
 def createARWindow():
     if cmds.window("AutoRiggerWindow", exists=True):
         cmds.deleteUI("AutoRiggerWindow")
@@ -25,15 +28,16 @@ instructionLine3 = cmds.text(l='3. Create skeleton template', al='left')
 createTemplateButton = cmds.button(l='Create Joint Template', command='LayoutCommand()')
 cmds.setParent('..')
 instructionLine4 = cmds.text(l='4. Move joints to match your character. Fingers must be oriented manually', al='left')
-line5Layout = cmds.rowLayout(numberOfColumns=2, columnAlign=(1, 'right'))
+line5Layout = cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
 instructionLine5 = cmds.text(l='5. Orient and mirror skeleton')
-orientMirrorButton = cmds.button(l='Orient and Mirror', command='OrientMirrorButton()')
+orientButton = cmds.button(l='Orient', command='OrientButton()', w=100)
+mirrorButton = cmds.button(l='Mirror', command='MirrorButton()', w=100)
 cmds.setParent('..')
 instructionLine6 = cmds.text(l='6. Check your skeleton. Make sure all joints are oriented correctly (double check '
                                'fingers)',
                              al='left')
 line7Layout = cmds.rowLayout(numberOfColumns=2, columnAlign=(1, 'right'))
-instructionLine7=cmds.text(l='7. Rig it!', al='left')
+instructionLine7 = cmds.text(l='7. Rig it!', al='left')
 rigButton = cmds.button(l='RIG', command='RigSimpleButton()', w=100)
 
 
@@ -42,9 +46,8 @@ def LayoutCommand():
     AR.CreateHumanoidSkeletonTemplate()
 
 
-def OrientMirrorButton():
+def OrientButton():
     AR.OrientSkeleton()
-    AR.MirrorJoints(0)
 
 
 def RigSimpleButton():
@@ -58,6 +61,10 @@ def RigSimpleButton():
     AR.IKLimbStretch()
     AR.TwistJoints()
     AR.FixSegmentScaleCompensate()
+    AR.RibbonJoints()
 
+
+def MirrorButton():
+    AR.MirrorJoints(0)
 
 createARWindow()

@@ -1,10 +1,15 @@
+import importlib
+
 import maya.cmds as cmds
-# noinspection PyUnresolvedReferences
 from Rigging_Toolkit import AutoRigger as AR
-# noinspection PyUnresolvedReferences
 from Rigging_Toolkit import BlendShapeController as BSC
-# noinspection PyUnresolvedReferences
 from Rigging_Toolkit import Controls as CC
+from Rigging_Toolkit import BrokenFK as BFK
+from Rigging_Toolkit import IKStretchyLimbs
+from Rigging_Toolkit import ReverseFoot as RF
+from Rigging_Toolkit import TwistRollJoints as TRJ
+from Rigging_Toolkit import ColorChanger
+from Rigging_Toolkit import RenameChain
 
 
 def CreateRTWindow():
@@ -14,13 +19,14 @@ def CreateRTWindow():
 
 
 # AUTO RIGGER TAB
-RiggingToolkitWindow = cmds.window(widthHeight=(600, 300))
+RiggingToolkitWindow = cmds.window(widthHeight=(600, 300), title='Rigging_Toolkit_V_1.1')
 form = cmds.formLayout()
 tabs = cmds.tabLayout(innerMarginWidth=5, innerMarginHeight=5, nch=3)
 cmds.formLayout(form, edit=True,
                 attachForm=((tabs, 'top', 0), (tabs, 'left', 0), (tabs, 'bottom', 0), (tabs, 'right', 0)))
 
 child1 = cmds.columnLayout(adjustableColumn=1, rowSpacing=10)
+rigNameField = cmds.textField(pht='Rig Name', w=200)
 line1RowLayout = cmds.rowLayout(numberOfColumns=2, columnAlign=(1, 'right'))
 instructionLine1 = cmds.text(label='1. Create Height Locators.', al='left')
 locatorButton = cmds.button(label='CreateLocators', command='AR.CreateHeightLocators()', al='right')
@@ -36,7 +42,7 @@ instructionLine4 = cmds.text(l='4. Move joints to match your character. Fingers 
 line5Layout = cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
 instructionLine5 = cmds.text(l='5. Orient and mirror skeleton')
 orientButton = cmds.button(l='Orient', command='OrientButton()', w=100)
-mirrorButton = cmds.button(l='Mirror', command='MirrorButton()', w=100)
+mirrorButton = cmds.button(l='Mirror', command='MirrorJointsButton()', w=100)
 cmds.setParent('..')
 instructionLine6 = cmds.text(l='6. Check your skeleton. Make sure all joints are oriented correctly (double check '
                                'fingers)',
@@ -122,10 +128,15 @@ cmds.setParent('..')
 # IK REVERSE FOOT SUB-TAB
 IKchild2 = cmds.columnLayout(adjustableColumn=1, rowSpacing=5)
 cmds.rowLayout(numberOfColumns=2)
-prefixField = cmds.textField(placeholderText='System Prefix', width=150)
+reverseFootPrefixField = cmds.textField(placeholderText='System Name', width=150)
 cmds.button(label='Create Locators', command='LocatorButtonCmd()', width=150)
 cmds.setParent('..')
+cmds.rowLayout(numberOfColumns=2)
+cmds.text(l='Control size:')
+reverseFootControlSizeField = cmds.floatField(min=.001, v=1)
+cmds.setParent('..')
 cmds.button(label="I've placed my locators, GO!", command='CreateReverseFootSystem()')
+cmds.text(al='center', l='*If you want SDKs, please select the command control (usually the IK Control)*')
 cmds.setParent('..')
 cmds.setParent('..')
 
@@ -146,13 +157,13 @@ axisSelection = cmds.radioButtonGrp(label='Locator Axis', labelArray3=['x', 'y',
 cmds.setParent('..')
 cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
 cmds.text(label='Start Joint')
-firstJointTextField = cmds.textField(placeholderText='ex:"Elbow Jnt"', w=200)
-cmds.button(label='getSelection', command='getStartJoint()')
+twistFirstJointTextField = cmds.textField(placeholderText='ex:"Elbow Jnt"', w=200)
+cmds.button(label='getSelection', command='getTwistStartJoint()')
 cmds.setParent('..')
 cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
 cmds.text(label='SecondJoint')
-secondJointTextField = cmds.textField(placeholderText='ex:"Hand Jnt"', w=200)
-cmds.button(label='getSelection', command='getSecondJoint()')
+twistSecondJointTextField = cmds.textField(placeholderText='ex:"Hand Jnt"', w=200)
+cmds.button(label='getSelection', command='getTwistSecondJoint()')
 cmds.setParent('..')
 cmds.rowLayout(numberOfColumns=3, columnAlign=(1, 'right'))
 shoulderBox = cmds.checkBox(label='Shoulder')
@@ -165,6 +176,7 @@ locatorOffsetFloatField = cmds.floatField(value=1)
 cmds.setParent('..')
 cmds.button(label='create', command='twistButtonCommand()')
 cmds.setParent('..')
+# SEGMENT SCALE COMPENSATE
 JointsChild2 = cmds.button(l='Disable Segment Scale Compensate', command='SSCDisableCommand()')
 cmds.setParent('..')
 
@@ -185,7 +197,7 @@ cmds.setParent('..')
 miscChild2 = cmds.columnLayout(adjustableColumn=True, rowSpacing=15)
 cmds.text(label="Rename Format")
 inputField = cmds.textField(placeholderText="use # for digit count, ex: Arm_##_Jnt")
-cmds.button(label='Rename', command='button_command()')
+cmds.button(label='Rename', command='RenameButtonCommand()')
 cmds.setParent('..')
 
 # CONTROL TO BLENDSHAPE SUB-TAB
@@ -254,25 +266,62 @@ cmds.tabLayout(child5, e=1, tl=((miscChild1, 'Change Color'),  # Misc
 
 cmds.showWindow()
 
-
+                                                # Controls (CC) Commands
 def TurnOffCheckBox(checkbox):
     cmds.checkBox(checkbox, e=1, v=0)
 
+# Control Creator Button - CC
 
 def ControlButtonCommand():
-    print('ControlCreatorButton has not been set up')
+    if len(cmds.textField(chosenNameField, q=True, text=True)) != 0:
+        chosenName = cmds.textField(chosenNameField, q=True, text=True)
+        noName = False
+        hName = chosenName;
+    else:
+        noName = True
+    chosenRadius = cmds.floatSliderGrp(chosenRadiusField, q=True, value=True)
+    selectedColor = 6
+    selectedButton = cmds.radioButtonGrp(colorButtonGrp, q=True, select=True)
+    if selectedButton == 1:
+        selectedColor = 6
+    elif selectedButton == 2:
+        selectedColor = 4  # NateMadeThis
+    elif selectedButton == 3:
+        selectedColor = cmds.colorIndexSliderGrp(customColorSlider, q=True, value=True) - 1
+    selectedAxis = cmds.radioButtonGrp(axisSelection, q=True, select=True)
+    selectedConstrainOption = cmds.checkBox(constraintCheckBox, q=True, value=True)
+    sels = cmds.ls(sl=1)
+    if len(sels) <= 0:
+        if noName:
+            cmds.error('Please give the control a name')
+        CC.createControl('world', chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption)
+    elif len(sels) == 1:
+        theJoint = sels[0]
+        if noName:
+            chosenName = theJoint
+        CC.createControl(theJoint, chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption)
+    else:
+        i = 1
+        for object in sels:
+            if noName:
+                chosenName = object
+            else:
+                chosenName = hName + str(i)
+            i += 1
+            CC.createControl(object, chosenName, chosenRadius, selectedColor, selectedAxis, selectedConstrainOption)
 
 
+# Control Mirror Command - CC
 def ControlMirrorCommand():
-    print('ControlCreatorButton has not been set up')
+    CC.MirrorControls()
 
+                                                # Broken FK Command
 
-def ShowBSCMenu():
-    BSC.CreateBSControlWindow()
-
-
+def CreateBrokenFKCommand():
+    BFK.BrokenFK()
+                                                # Auto Rigger Commands
 def LayoutCommand():
-    AR.InitializeHeirarchy()
+    AR.InitializeHeirarchy(cmds.textField(rigNameField, q=1, text=1))
     AR.CreateHumanoidSkeletonTemplate()
 
 
@@ -281,20 +330,138 @@ def OrientButton():
 
 
 def RigSimpleButton():
+    CreateProgressWindow()
+    cmds.text(progressText, e=1, l='Creating Skinning Skeleton')
+    AR.CreateSkinSkeleton()
+    cmds.progressBar(progressDisplay, e=1, pr=10)
+    cmds.text(progressText, e=1, l='Creating IKFK Systems')
     AR.ImplementIKFK()
+    cmds.progressBar(progressDisplay, e=1, pr=10)
+    cmds.text(progressText, e=1, l='Installing IK Controls...')
     AR.IKControls()
+    cmds.progressBar(progressDisplay, e=1, pr=20)
+    cmds.text(progressText, e=1, l='Installing FK Controls')
     AR.FKControls()
+    cmds.progressBar(progressDisplay, e=1, pr=30)
+    cmds.text(progressText, e=1, l='Installing Head and Neck Controls')
     AR.HeadCtrls()
+    cmds.progressBar(progressDisplay, e=1, pr=40)
+    cmds.text(progressText, e=1, l='Hooking up Hands to IKFK systems')
     AR.HybridHands()
+    cmds.progressBar(progressDisplay, e=1, pr=50)
+    cmds.text(progressText, e=1, l='Adding Major Transform Controls')
     AR.MetaControls()
+    cmds.progressBar(progressDisplay, e=1, pr=60)
+    cmds.text(progressText, e=1, l='Creating IK Local Spaces')
     AR.SpaceSwapIK()
+    cmds.progressBar(progressDisplay, e=1, pr=70)
+    cmds.text(progressText, e=1, l='Adding Stretch Capabilities')
     AR.IKLimbStretch()
+    cmds.progressBar(progressDisplay, e=1, pr=80)
+    cmds.text(progressText, e=1, l='Adding Roll Joints')
     AR.TwistJoints()
+    cmds.progressBar(progressDisplay, e=1, pr=90)
+    cmds.text(progressText, e=1, l='Installing Ribbon Joint Chains')
+    AR.RibbonJoints()
+    cmds.progressBar(progressDisplay, e=1, pr=100)
+    cmds.text(progressText, e=1, l='Hooking up the Skinning skeleton')
+    AR.ConnectSkinSkeleton()
+    cmds.progressBar(progressDisplay, e=1, pr=110)
+    cmds.text(progressText, e=1, l='Disabling Segment Scale Compensate')
     AR.FixSegmentScaleCompensate()
+    cmds.progressBar(progressDisplay, e=1, pr=120)
+    cmds.text(progressText, e=1, l='DONE!')
+    cmds.deleteUI(ARProgressWindow)
 
 
-def MirrorButton():
+def MirrorJointsButton():
     AR.MirrorJoints(0)
+
+
+                                                # IK Stretch Commands
+def getStartJoint():
+    selection = cmds.ls(sl=1)[0]
+    print(selection)
+    cmds.textField(firstJointTextField, e=True, text=selection)
+
+
+def getBaseControl():
+    selection = cmds.ls(sl=1)[0]
+    cmds.textField(baseControlTextField, e=True, text=selection)
+
+
+def getIKControl():
+    selection = cmds.ls(sl=1)[0]
+    cmds.textField(IKControlTextField, e=True, text=selection)
+
+
+def CreateStretchButtonCommand():
+    chosenStartJoint = cmds.textField(firstJointTextField, q=1, text=1)
+    chosenBaseControl = cmds.textField(baseControlTextField, q=1, text=True)
+    chosenIKControl = cmds.textField(IKControlTextField, q=1, text=True)
+    chosenMaxStretch = cmds.floatSliderGrp(maxStretchFloatSlider, q=True, v=True)
+    needsReverseNode = cmds.checkBox(reverseScalarCheckbox, q=1, value=1)
+    IKStretchyLimbs.CreateIKStretch(chosenStartJoint, chosenBaseControl, chosenIKControl, chosenMaxStretch, needsReverseNode,0)
+
+                                                # BlendShape Controller
+
+
+                                                # Reverse Foot Commands
+def LocatorButtonCmd():
+    RF.CreateLocators(cmds.textField(reverseFootPrefixField, q=1, text=1),
+                      cmds.floatField(reverseFootControlSizeField, q=1, v=1))
+
+
+def CreateReverseFootSystem():
+    RF.CreateReverseFootSystem(cmds.textField(reverseFootPrefixField, q=1, text=1),
+                               cmds.floatField(reverseFootControlSizeField, q=1, v=1))
+
+                                                # Twist Joints
+
+def twistButtonCommand():
+    numJ = cmds.intField(numJField, q=1, v=1)
+    chosenFirst = cmds.textField(twistFirstJointTextField, q=1, text=1)
+    chosenSecond = cmds.textField(twistSecondJointTextField, q=1, text=1)
+    if cmds.checkBox(mirroredJointBox, q=1, v=1):
+        zDir = -1
+    else:
+        zDir = 1
+    nameF = cmds.textField(nameField, q=1, text=1)
+    nameF = nameF.replace(' ', '_')
+    offsetDistance = cmds.floatField(locatorOffsetFloatField, q=1, value=1)
+    endChain = cmds.checkBox(endOfChainBox, q=1, v=1)
+    sAxis = cmds.radioButtonGrp(axisSelection, q=True, select=True)
+    if cmds.checkBox(shoulderBox, q=1, v=1):
+        TRJ.CreateShoulderTwistJoint(nameF, numJ, chosenFirst, chosenSecond, sAxis, offsetDistance, zDir, endChain)
+    else:
+        TRJ.CreateTwistJoint(nameF, numJ, chosenFirst, chosenSecond, sAxis, offsetDistance, zDir, endChain)
+
+
+def getTwistStartJoint():
+    selection = cmds.ls(sl=1)[0]
+    cmds.textField(twistFirstJointTextField, e=True, text=selection)
+
+
+def getTwistSecondJoint():
+    selection = cmds.ls(sl=1)[0]
+    cmds.textField(twistSecondJointTextField, e=True, text=selection)
+
+
+def changeColorButtonCommand():
+    chosenIndex = cmds.colorIndexSliderGrp(customColorSlider, q=1, value=1)
+    ColorChanger.changeColor(cmds.ls(sl=1), chosenIndex)
+
+                                                # Segment Scale Compensate
+
+
+def RenameButtonCommand():
+    RenameChain.rename_chain(cmds.textField(inputField, q=True, text=True))
+
+
+def SSCDisableCommand():
+    jointList = cmds.ls(type='joint')
+    for joint in jointList:
+        cmds.setAttr('%s.segmentScaleCompensate' % joint, 0)
 
 
 def BSCUpdateTargetListP():
@@ -366,3 +533,14 @@ def BSCButtonCommand():
                                transformMode + axis,
                                multiplierP,
                                multiplierNegative)
+
+
+def CreateProgressWindow():
+    if cmds.window("ARProgressWindow", exists=True):
+        cmds.deleteUI("ARProgressWindow")
+    cmds.showWindow(ARProgressWindow)
+
+ARProgressWindow =cmds.window(widthHeight = (300,100), title='Building your rig...')
+cmds.columnLayout(cal='center', adj=1, rowSpacing=15)
+progressDisplay = cmds.progressBar(min=0, max=130, width=250, height=50)
+progressText = cmds.text(l='Setting Up')

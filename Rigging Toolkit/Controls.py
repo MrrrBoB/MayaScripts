@@ -53,3 +53,19 @@ def SquareControl(size, name):
                                       (-pnt, 0, pnt),
                                       (pnt, 0, pnt)))
 
+
+def MirrorControls():
+    theControls = cmds.ls(sl=1)
+    controlGrps = [cmds.listRelatives(control, parent=1)[0] for control in theControls]
+    newControlGrp = cmds.duplicate(controlGrps, rr=1)
+    mirrorGrp = cmds.group(newControlGrp, n='mirrorGrp', w=1)
+    cmds.xform(mirrorGrp, piv=(0, 0, 0))
+    cmds.xform(mirrorGrp, s=(-1, 1, 1))
+    endCtrlGrp = []
+    for grp in newControlGrp:
+        cmds.parent(grp, w=1)
+        newControlsFull = cmds.listRelatives(newControlGrp, c=1, f=1)
+        newControlsShort = cmds.listRelatives(newControlGrp, c=1, f=0)
+        endCtrlGrp.append(grp)
+    print(endCtrlGrp)
+    cmds.delete(mirrorGrp)

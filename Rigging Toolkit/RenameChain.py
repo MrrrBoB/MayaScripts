@@ -22,8 +22,7 @@ def rename_chain(format_ex):
 
 
 def button_command():
-    inputString = cmds.textField(inputField, q=True, text=True)
-    rename_chain(inputString)
+    rename_chain(cmds.textField(inputField, q=True, text=True))
 
 
 def show_rename_window():
@@ -40,5 +39,4 @@ inputField = cmds.textField(placeholderText="use # for digit count, ex: Arm_##_J
 cmds.button(label='Rename', command='button_command()')
 cmds.setParent('..')
 
-show_rename_window()
 

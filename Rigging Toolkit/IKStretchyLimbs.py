@@ -18,7 +18,6 @@ def CreateIKStretch(startJoint, baseControl, ikControl, maxStretchValue, needsRe
     jointHierarchy.append(startJoint)
     jointHierarchy.reverse()
     totalJoints = len(jointHierarchy)
-    print('stretching %s joints' % (totalJoints))
     placeholderName = ikControl.replace('_Ctrl', '')
     # check to make sure the end joint is the last in the heirarchy
     '''print(totalJointHierarchy[len(totalJointHierarchy)-1])
@@ -79,6 +78,7 @@ def CreateIKStretch(startJoint, baseControl, ikControl, maxStretchValue, needsRe
 def CreateIKStretchNumJoints(startJoint, numJoints, baseControl, ikControl, maxStretchValue, needsReverseScalar,
                              includeMasterScalar):
     # add the stretch switch and max stretch attribute to the ik Control
+    cmds.addAttr(ikControl, at='enum', nn='____________', ln='StretchDivider', en='STRETCH', k=1)
     cmds.addAttr(ikControl, longName='Stretch', attributeType='float', minValue=0, maxValue=1, dv=1, keyable=True)
     cmds.addAttr(ikControl, longName='Max_Stretch', attributeType='float', minValue=1, maxValue=maxStretchValue,
                  dv=maxStretchValue, keyable=True)
@@ -94,7 +94,6 @@ def CreateIKStretchNumJoints(startJoint, numJoints, baseControl, ikControl, maxS
     jointHierarchy.append(startJoint)
     jointHierarchy.reverse()
     totalJoints = numJoints
-    print('stretching %s joints' % (totalJoints))
     placeholderName = ikControl.replace('_Ctrl', '')
     # check to make sure the end joint is the last in the heirarchy
     '''print(totalJointHierarchy[len(totalJointHierarchy)-1])
