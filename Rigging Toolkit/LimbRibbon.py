@@ -56,7 +56,7 @@ cmds.button(l='Create Ribbon', w=100, command='CreateCustomRibbonCommand()')
 
 #CreateRibbonWindow()
 
-
+# A simple ribbon has no controls, and is just a nurbs with joints attatched
 def CreateSimpleRibbonCommand():
     print('creating ribbon')
     systemName = (cmds.textField(ribbonNameField, q=1, text=1)).replace(' ', '_')
@@ -99,7 +99,7 @@ def CreateSimpleRibbonCommand():
         newRAxis = (item * 90 for item in rAxis)
         cmds.xform(theRibbon, ro=newRAxis)
 
-
+# a custom ribbon has control joints, between control joints, and an option to create a crease at control joints
 def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJointsBool, jointList, invertChain,
                        outAxis, addCrease):
     needsRotate = outAxis == 'Y Out'
@@ -120,7 +120,7 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
                                        ctrlJntCnt,
                                        midJntCnt,
                                        systemName)
-    else:
+    else:  # creates the ribbon
         theRibbon = cmds.nurbsPlane(p=(0, 0, 0),
                                     ax=(0, 0, 1),
                                     w=ribbonLength,
@@ -137,16 +137,16 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
     for i in range(divisionCount):  # Creates a follicle/joint for every division
         u = i * (1 / (divisionCount - 1))
         thisFollicle = UVF.create_follicle(theRibbon[0], u, .5, systemName + '_Follicle_' + str(i + 1))
-        scaleOffsetGrp = cmds.group(w=1, em=1, n=thisFollicle + '_Jnt_Master_Scale_Offset')
-        cmds.matchTransform(scaleOffsetGrp, thisFollicle)
-        cmds.parent(scaleOffsetGrp, thisFollicle)
+        # creates an inflate offset for controls
         inflateOffsetGrp = cmds.group(w=1, em=1, n=thisFollicle + '_Jnt_Inflate_Offset')
         cmds.matchTransform(inflateOffsetGrp, thisFollicle)
-        cmds.parent(inflateOffsetGrp, scaleOffsetGrp)
+        cmds.parent(inflateOffsetGrp, thisFollicle)
+        # matches the scale of the joint to the scale of the limb for master scale and custom scale purposes
         armOffsetGrp = cmds.group(w=1, em=1, n=thisFollicle + '_Limb_Offset')
         cmds.matchTransform(armOffsetGrp, inflateOffsetGrp)
         cmds.parent(armOffsetGrp, inflateOffsetGrp)
         thisJoint = cmds.joint(n=systemName + '_Follicle_Jnt_' + str(i + 1), radius=ribbonLength)
+        # orients the ribbon joints
         if needsRotate and invertChain:
             cmds.joint(thisJoint, e=1, o=(-90, 0, 0))
         elif needsRotate:
@@ -161,6 +161,7 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
     skinJoints = []
     angleJoints = []
     controls = []
+    # Add controls joints
     for i in range(ctrlJntCnt + 2):
         increment = (1 / (ctrlJntCnt + 1))
         cmds.select(cl=1)
@@ -193,7 +194,9 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
             previousCtrlJntCtrl = currentCtrlJointCtrl
             continue
             # >>>>>>>>>>>>>>>>>>>>>>>>>>> If not first joint, start making systems
-        if addCrease:  # Aim system and controls
+            # Aim system and controls for hinge points like knees and elbows
+            # This is necessary to help keep crisp angles on the ribbon at these points
+        if addCrease:
             thisAngleJoint = cmds.joint(n=systemName + '_Ribbon_Ctrl_Angle_Jnt_' + str(i), radius=ribbonLength * 2,
                                         o=(0, 180, 0))
             thisAngleTipJoint = cmds.joint(n=systemName + '_Ribbon_Ctrl_Angle_Tip_Jnt_' + str(i),
@@ -203,6 +206,7 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
                                         ee=thisAngleTipJoint,
                                         sol='ikSCsolver',
                                         n=systemName + '_Ribbon_Angle_IK_Handle' + str(i))
+            # this is based on the joint's orientation if y or z is pointed away from the ribbon
             if needsRotate:
                 cmds.aimConstraint(currentCtrlJoint,
                                    systemName + '_Ribbon_Angle_IK_Handle' + str(i),
@@ -230,11 +234,12 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
         if needsRotate:
             cmds.joint(thisBetweenJoint, e=1, o=(90, 0, 0))
         '''if invertChain:
-            cmds.joint(thisBetweenJoint, e=1, o=(180, 0, 0))'''  # enable for rotational mirror
+            cmds.joint(thisBetweenJoint, e=1, o=(180, 0, 0))'''  # enable for rotational mirror instead of translational
         cmds.parent(thisBetweenJoint, controlJointGrp)
         thisBetweenJointCtrl = Controls.createControl(thisBetweenJoint, thisBetweenJoint, ribbonLength * .1, 17, 0, 1)
         controls.append(thisBetweenJointCtrl)
         betweenAimOffsetGrp = cmds.rename(thisBetweenJointCtrl + '_Grp', thisBetweenJointCtrl + '_AIM_OFFSET')
+        # create an offset to be rotated by a limb's twist joints to help ribbon deformation
         twistOffsetGrp = cmds.group(thisBetweenJointCtrl, r=1, p=betweenAimOffsetGrp,
                                     n=thisBetweenJoint + '_Twist_Offset')
         masterBetweenCtrlGrp = cmds.group(n=thisBetweenJointCtrl + '_Grp', em=1, w=1)
@@ -294,7 +299,6 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
     cmds.addAttr(theRibbon[0], ln='Twist_Amount', at='double', dv=0, k=1)
     cmds.connectAttr(theRibbon[0] + '.Enable_Twist', thisBlendShapeNode[0] + '.' + twistRibbon[0])
     cmds.connectAttr(theRibbon[0] + '.Twist_Amount', twistDF[0] + '.endAngle')
-
     # skin ribbon to control joints
     ribbonCluster = cmds.skinCluster(skinJoints,
                                      theRibbon[0],
@@ -314,18 +318,20 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
         x = -1
     else:
         x = 1
-    for i in range(1, ctrlJntCnt + 2):
-        j = ((midJntCnt + 3) * i) - 1
-        if invertChain:
-            j = (numCVs - 1) - j
-        cmds.skinPercent(theRibbon[0] + '_SkinCluster', theRibbon[0] + '.cv[' + str(j) + '][*]',
-                         transformValue=(theRibbon[0] + '_Ctrl_Angle_Jnt_' + str(i), 1))
-        cmds.skinPercent(theRibbon[0] + '_SkinCluster', theRibbon[0] + '.cv[' + str(j - x) + '][*]',
-                         transformValue=(theRibbon[0] + '_Ctrl_Jnt_' + str(i + 1), .16))
-        cmds.skinPercent(theRibbon[0] + '_SkinCluster', theRibbon[0] + '.cv[' + str(j - x) + '][*]',
-                         tmw=(theRibbon[0] + '_Ctrl_Jnt_' + str(i + 1),
-                              theRibbon[0] + '_Ctrl_Angle_Jnt_' + str(i)))
-    # Match to joints
+    # skin the cvs near the crease to create a sharp bend at the joint
+    if (cmds.checkBox(creaseCB, q=1, v=1)):
+        for i in range(1, ctrlJntCnt + 2):
+            j = ((midJntCnt + 3) * i) - 1
+            if invertChain:
+                j = (numCVs - 1) - j
+            cmds.skinPercent(theRibbon[0] + '_SkinCluster', theRibbon[0] + '.cv[' + str(j) + '][*]',
+                             transformValue=(theRibbon[0] + '_Ctrl_Angle_Jnt_' + str(i), 1))
+            cmds.skinPercent(theRibbon[0] + '_SkinCluster', theRibbon[0] + '.cv[' + str(j - x) + '][*]',
+                             transformValue=(theRibbon[0] + '_Ctrl_Jnt_' + str(i + 1), .16))
+            cmds.skinPercent(theRibbon[0] + '_SkinCluster', theRibbon[0] + '.cv[' + str(j - x) + '][*]',
+                             tmw=(theRibbon[0] + '_Ctrl_Jnt_' + str(i + 1),
+                                  theRibbon[0] + '_Ctrl_Angle_Jnt_' + str(i)))
+        # Match control joints to the joints of a limb, essentially attaching the ribbon to the limb
     if matchJointsBool:
         for i in range(numJoints):
             cmds.parentConstraint(jointList[i], systemName + '_Ribbon_Ctrl_Jnt_' + str(i + 1) + '_Ctrl_Grp', mo=0)
@@ -356,7 +362,9 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
             for j in range(2):
                 for k in range(8):  # which individual cv(in order from component editor)
                     cmds.setAttr(
-                        '{0}.inputTarget[{1}].inputTargetGroup[{2}].targetWeights[{3}]'.format(thisBlendShapeNode[0], i, j,
+                        '{0}.inputTarget[{1}].inputTargetGroup[{2}].targetWeights[{3}]'.format(thisBlendShapeNode[0],
+                                                                                               i,
+                                                                                               j,
                                                                                                k), 0)
                 '''for k in range(8,12):
                     cmds.setAttr('{0}.inputTarget[{1}].inputTargetGroup[{2}].targetWeights[{3}]'.format(thisBlendShapeNode[0], i, j, k), .5)'''
@@ -364,7 +372,7 @@ def CreateCustomRibbon(systemName, ribbonLength, ctrlJntCnt, midJntCnt, matchJoi
     # this is to potentially soften the falloff of the blendshape to the locked base
     return theRibbon
 
-
+# create a creased ribbon for use in a custom ribbon
 def CreateCreasedNurbs(ribbonLength, numHinges, numMidJoints, name):
     ribbonHeight = ribbonLength * .15
     ribCount = ((numMidJoints + 1) * (numHinges + 1)) + 1

@@ -31,7 +31,7 @@ importlib.reload(AddSplineStretch)
 height = 0
 
 
-def InitializeHeirarchy(rigName='Undefined'):
+def InitializeHeirarchy(rigName):  # Creates a group heirarchy to support the rig
     global rName
     rName = rigName
     if cmds.objExists(rigName):
@@ -39,6 +39,7 @@ def InitializeHeirarchy(rigName='Undefined'):
     metaGroup = cmds.group(n=rigName, w=1, em=1)
     geometryGroup = cmds.group(n='Geometry', p=metaGroup, em=1)
     cmds.createDisplayLayer(n='Geometry_Layer')
+
     skeletonGroup = cmds.group(n='Skeleton', p=metaGroup, em=1)
     cmds.createDisplayLayer(n='Skeleton_Layer')
     deformersGroup = cmds.group(n='Deformers', p=metaGroup, em=1)
@@ -67,14 +68,15 @@ def InitializeHeirarchy(rigName='Undefined'):
     cmds.setAttr(deformersGroup + '.visibility', 0)
 
 
-def CreateHeightLocators():
+def CreateHeightLocators():  # Height locators will be used to determine the rig's total height
     baseLocator = cmds.spaceLocator(p=(0, 0, 0), n="Base_Locator")
     topLocator = cmds.spaceLocator(p=(0, 0, 0), n='Top_Locator')
     cmds.select(cl=1)
 
 
-def CreateHumanoidSkeletonTemplate():
-    global rigHeight
+def CreateHumanoidSkeletonTemplate():  # Create a joint template for the skeleton. This template is intended to be
+    # modified before orienting and mirroring
+    global rigHeight  # Total rig height, this will be used to adjust visual and mathematical aspects of the rig
     global footLocators
     print("Laying out joint template")
     rigHeight = round(cmds.xform("Top_Locator", q=1, t=1)[1] - cmds.xform("Base_Locator", q=1, t=1)[1], 2)
@@ -138,6 +140,8 @@ def CreateHumanoidSkeletonTemplate():
     cmds.xform("L_MiddleFinger_01_Jnt", t=(rigHeight * .04, rigHeight * .005, rigHeight * .025), ro=(0, 8, 0))
     cmds.xform("L_RingFinger_01_Jnt", t=(rigHeight * .045, rigHeight * .005, rigHeight * .0135), ro=(0, 12, 0))
     cmds.xform("L_Pinky_01_Jnt", t=(rigHeight * .045, rigHeight * .005, rigHeight * .003), ro=(0, 16, 0))
+    for fingerJ in ("L_MiddleFinger_01_Jnt","L_RingFinger_01_Jnt", "L_Pinky_01_Jnt"):
+        cmds.makeIdentity(fingerJ, r=1, a=1)
     # create left leg
     cmds.select(cogJnt, r=1)
     pelvisJnt = cmds.joint(n="Pelvis_Jnt", p=cmds.xform(cogJnt, q=1, t=1), radius=rigHeight * .5)
@@ -159,11 +163,10 @@ def CreateHumanoidSkeletonTemplate():
 
 
 def OrientSkeleton():
-    # orient spine
+    # After the joints have been rearranged, the skeleton is oriented here
     print("Orienting Skeleton...")
     for currentJoint in (cmds.ls(typ='joint')):
-        if 'Final' in currentJoint: continue  # TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT#TAKEOUT
-        cmds.makeIdentity(currentJoint, r=1, a=1)  # Freeze any nonzero rotations
+        if 'Final' in currentJoint: continue  # This line is used only in testing with an additional skeleton
     for currentJoint in ("Spine_01_Jnt", "Spine_03_Jnt", "Spine_05_Jnt", "Neck_Jnt"):
         cmds.joint(currentJoint, e=1, oj="xyz", sao="zdown", ch=0)
     childList = cmds.listRelatives('Spine_05_Jnt', type='joint', c=1)
@@ -217,18 +220,9 @@ def MirrorJoints(alreadyOriented):
     cmds.delete(flipGrp)
     # Create a skinned skeleton
 
-    '''for i in reversed(range(2, 4)):
-        jointNum = (i*2)-1
-        parentJoint = cmds.rename('Spine_0'+str(i)+'_Jnt_Skin',
-                                  'Spine_0'+str(jointNum)+'_Jnt_Skin')
-        pjDistance = cmds.xform(parentJoint, q=1, t=1)[0]
-        midJoint = cmds.duplicate(parentJoint, n='Spine_0'+str(jointNum-1)+'_Jnt_Skin', po=1)
-        cmds.joint(midJoint, e=1, o=(0, 0, 0))
-        cmds.setAttr(midJoint[0]+'.tx', pjDistance/2)
-        cmds.parent(parentJoint, midJoint)'''
 
-
-def CreateSkinSkeleton():
+def CreateSkinSkeleton():  # This method creates the skeleton that will be bound to the skin and exported.
+    # Before the export skeleton is created, we create in between joints for the spine.
     spine01Jnt = 'Spine_01_Jnt'
     spine03Jnt = 'Spine_03_Jnt'
     spine05Jnt = 'Spine_05_Jnt'
@@ -247,12 +241,14 @@ def CreateSkinSkeleton():
     cmds.joint(spine04Jnt, e=1, o=(0, 0, 0))
     cmds.parent(spine05Jnt, spine04Jnt)
     duplicateSkeleton = cmds.duplicate('CoG_Jnt', n='CoG_Jnt_Skin', rc=1)
+    # this is where the skin skeleton is created
     duplicatedJointList = cmds.listRelatives(duplicateSkeleton, type='joint')
     cmds.setAttr("CoG_Jnt_Skin.overrideEnabled", 1)
     cmds.setAttr("CoG_Jnt_Skin.overrideColor", 9)
     for joint in duplicatedJointList:
         cmds.rename(joint, joint.replace('Jnt1', 'Jnt_Skin'))
     direction = 1
+    # These for loops create the in between joints for the arms to support the ribbon functionality
     for prefix in ('L_', 'R_'):
         for limbName in ('Arm', 'Leg'):
             for i in reversed(range(2, 4)):
@@ -272,7 +268,7 @@ def CreateSkinSkeleton():
                 cmds.parent(parentJoint, midJoint2)
 
 
-# Create controls and add IKFK systems to limbs and spinez
+# Create controls and add IKFK systems to limbs and spine
 def ImplementIKFK():
     print('Implementing IKFK systems...')
     # Left Arm
@@ -314,6 +310,7 @@ def IKControls():
     print('Creating Control Joints for spine')
     Controls.createControl('Pelvis_Jnt', 'Pelvis', rigHeight * .15, 17, 1, 1)
     cmds.parent('Pelvis_Ctrl_Grp', 'Spine_Ctrls')
+    # Create spline and control joints for spine
     cmds.select(cl=1)
     CTRLJnt3 = cmds.joint(n='Spine_IK_Ctrl_Jnt_3', p=cmds.xform('Spine_05_Jnt', q=1, t=1, ws=1), radius=rigHeight * 1)
     cmds.select(cl=1)
@@ -327,6 +324,7 @@ def IKControls():
     cmds.scaleConstraint(CTRLJnt3, 'Spine_05_Jnt_IK')
     cmds.scaleConstraint('Pelvis_Ctrl', 'Spine_01_Jnt_IK')
     cmds.orientConstraint(CTRLJnt3, 'Spine_05_Jnt_IK', mo=1)
+    # Add controls to control joints
     torsoCtrl = Controls.createControl(CTRLJnt3, 'IK_Torso_Top', rigHeight * .1, 13, 1, 1)
     Controls.createControl(CTRLJnt2, 'IK_Torso_Mid', rigHeight * .085, 13, 1, 1)
     cmds.connectAttr(torsoCtrl + '.rotateY', 'Spine_Spline_IK_Handle.twist')
@@ -334,8 +332,11 @@ def IKControls():
     for prefix in ('L_', 'R_'):
         # Create Arm Controls
         print('Creating ' + prefix + ' arm IK controls')
+        # here is the actual IK handle control
         handleCtrl = Controls.createControl(prefix + 'Hand_Jnt', prefix + 'Hand_IK', rigHeight * .05, 13, 0, 0)
         cmds.parent(prefix + 'Arm_IK_Handle', prefix + 'Hand_IK_Ctrl')
+        cmds.setAttr(prefix + 'Arm_IK_Handle.v', 0)
+        # here is the pv control
         pvCtrl = Controls.createControl(prefix + 'Arm_02_Jnt_IK', prefix + 'Arm_IK_PV', rigHeight * .025, 13, 1, 0)
         offsetGrp = cmds.group(n=pvCtrl + '_OFFSET_Grp', w=1, em=1)
         cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
@@ -349,8 +350,11 @@ def IKControls():
         cmds.connectAttr(prefix + 'Arm_IKFK_Reverse.outputX', pvCtrl + '.visibility')
         # Legs
         print('Creating ' + prefix + ' leg IK controls')
+        # here is the actual IK handle control
         thisLegIKCtrl = Controls.createControl('world', prefix + 'Leg_IK', .5, 13, 1, 0)
         cmds.matchTransform(prefix + 'Leg_IK_Ctrl_Grp', prefix + 'Leg_03_Jnt_IK', pos=1)
+        cmds.setAttr(prefix + 'Leg_IK_Handle.v', 0)
+        # here is the PV control
         pvCtrl = Controls.createControl('world', prefix + 'Leg_IK_PV', .25, 13, 0, 0)
         offsetGrp = cmds.group(n=pvCtrl + '_OFFSET_Grp', w=1, em=1)
         cmds.matchTransform(offsetGrp, pvCtrl, pos=1)
@@ -363,24 +367,30 @@ def IKControls():
         ReverseFoot.CreateReverseFootSystem(prefix.replace('_', ''), rigHeight * .02)
         if prefix == 'R_':
             cmds.makeIdentity('R_Reverse_Foot_Outer_Ctrl_Grp', s=1, a=1)
-        cmds.ikHandle(sj=prefix + 'Foot_01_Jnt_IK',
-                      ee=prefix + 'Foot_02_Jnt_IK',
-                      n=prefix + 'Reverse_Foot_Ball_Handle',
-                      sol='ikSCsolver')
+        # Create reverse foot IK handles
+        thisFootIKHandle = cmds.ikHandle(sj=prefix + 'Foot_01_Jnt_IK',
+                                         ee=prefix + 'Foot_02_Jnt_IK',
+                                         n=prefix + 'Reverse_Foot_Ball_Handle',
+                                         sol='ikSCsolver')
+        cmds.setAttr(thisFootIKHandle[0]+'.v', 0)
         cmds.parent(prefix + 'Reverse_Foot_Ball_Handle', prefix + 'Reverse_Foot_Ball_Ctrl')
+        cmds.setAttr(prefix + 'Reverse_Foot_Ball_Handle.v', 0)
         cmds.parent(prefix + 'Leg_IK_Handle', prefix + 'Reverse_Foot_Ball_Ctrl')
-        cmds.ikHandle(sj=prefix + 'Foot_02_Jnt_IK',
-                      ee=prefix + 'Foot_03_Jnt_IK',
-                      n=prefix + 'Reverse_Foot_Toe_Handle',
-                      sol='ikSCsolver')
+        thisFootIKHandle = cmds.ikHandle(sj=prefix + 'Foot_02_Jnt_IK',
+                                         ee=prefix + 'Foot_03_Jnt_IK',
+                                         n=prefix + 'Reverse_Foot_Toe_Handle',
+                                         sol='ikSCsolver')
+        cmds.setAttr(thisFootIKHandle[0] + '.v', 0)
         cmds.parent(prefix + 'Reverse_Foot_Toe_Handle', prefix + 'Reverse_Foot_ToeTap_Ctrl')
+        cmds.setAttr(prefix + 'Reverse_Foot_Toe_Handle.v', 0)
         cmds.parent(prefix + 'Reverse_Foot_Outer_Ctrl_Grp', prefix + 'Leg_IK_Ctrl')
-        # add foot roll controls
+        # add foot roll control driven keys
         ReverseFoot.AddRollControls(thisLegIKCtrl, prefix.replace('_', ''))
         cmds.parent(thisLegIKCtrl + '_Grp', prefix + 'Leg_IK_Ctrls')
         cmds.parent(pvCtrl + '_Grp', prefix + 'Leg_IK_Ctrls')
         cmds.scaleConstraint(prefix + 'Leg_IK_Ctrl', prefix + 'Foot_01_Jnt_IK')
         cmds.connectAttr(prefix + 'Leg_IKFK_Reverse.outputX', prefix + 'Leg_IK_Ctrls.visibility')
+    # insert controls to hierarchy for organization
     cmds.parent('IK_Torso_Top_Ctrl_Grp', 'Spine_IK_Ctrls')
     cmds.parent('IK_Torso_Mid_Ctrl_Grp', 'Spine_IK_Ctrls')
     cmds.connectAttr('Spine_IKFK_Reverse.outputX', 'IK_Torso_Mid_Ctrl.visibility')
@@ -479,7 +489,7 @@ def FKControls():
         cmds.parent(fingerCtrlGrp, prefix + 'Hand_Ctrls')
 
 
-def HybridHands():
+def HybridHands():  # hooks the hand control up to the IK and FK hand controls and the IKFK Switch
     for prefix in ('L_', 'R_'):
         # Scale
         constraint = \
@@ -496,12 +506,14 @@ def HybridHands():
 
 
 def HeadCtrls():
+    # create and edit neck control
     neckControl = Controls.createControl('Neck_Jnt', 'Neck', rigHeight * .04, 17, 0, 1)
     cmds.select(cl=1)
     for i in range(8):
         cmds.select(neckControl + '.cv[' + str(i) + ']', add=1)
     cmds.move(rigHeight * .03, 0, 0, wd=1, os=1, r=1)
     cmds.parent(neckControl + '_Grp', 'Head_Ctrls')
+    # create and edit head control
     headControl = Controls.createControl('Head_Jnt', 'Head', rigHeight * .06, 17, 1, 1)
     cmds.select(cl=1)
     for i in range(8):
@@ -517,11 +529,13 @@ def HeadCtrls():
     cmds.scale(.75, 1, 1, r=1)
     cmds.select(cl=1)
     cmds.parent(jawControl + '_Grp', 'Head_Ctrls')
+    # create eye aim main control
     EyeMainControl = Controls.createControl('world', 'Eye_Target_Main', rigHeight * .04, 17, 2, 0)
     cmds.xform(EyeMainControl + '_Grp', t=(0, cmds.xform('L_Eye_Jnt', q=1, t=1, ws=1)[1], rigHeight * .2), ws=1)
     cmds.xform(EyeMainControl, s=(1, .5, 1))
     cmds.makeIdentity(EyeMainControl, s=1, a=1)
     cmds.parent(EyeMainControl + '_Grp', 'Head_Ctrls')
+    # create each individual eye aim control
     for prefix in ('L_', 'R_'):
         thisUpLocator = cmds.spaceLocator(n=prefix + 'Eye_Aim_Up_Loc')
         cmds.matchTransform(thisUpLocator, prefix + 'Eye_Jnt')
@@ -529,6 +543,7 @@ def HeadCtrls():
         cmds.parentConstraint('Head_Jnt', thisUpLocator, mo=1)
         aimCtrl = Controls.createControl(prefix + 'Eye_Jnt', prefix + 'Eye_Aim_Ctrl', rigHeight * .012, 14, 2, 0)
         cmds.xform(aimCtrl, t=(0, 0, (rigHeight * .2) - cmds.xform(prefix + 'Eye_Jnt', q=1, t=1, ws=1)[2]), r=1)
+        cmds.makeIdentity(aimCtrl, a=1)
         BrokenFK.BrokenConnect(EyeMainControl, aimCtrl)
         cmds.aimConstraint(aimCtrl, prefix + 'Eye_Jnt', wut='object', wuo=thisUpLocator[0], aim=(0, 0, 1), u=(0, 1, 0))
         cmds.parent(aimCtrl + '_Grp', 'Head_Ctrls')
@@ -538,7 +553,7 @@ def HeadCtrls():
     BrokenFK.BrokenConnect(headControl, jawControl)
 
 
-def MetaControls():
+def MetaControls():  # Create standard Transform and CoG Controls
     transformControl = Controls.createControl('world', 'Transform', rigHeight * .3, 17, 1, 0)
     cogCtrl = Controls.createControl('CoG_Jnt', 'CoG', rigHeight * .2, 17, 1, 1)
     BrokenFK.BrokenConnect(transformControl, cogCtrl)
@@ -557,7 +572,7 @@ def MetaControls():
     BrokenFK.BrokenConnect('CoG_Ctrl', 'Pelvis_Ctrl')
 
 
-def SpaceSwapIK():
+def SpaceSwapIK():  # Create local space swaps for IK Controls, allowing them to toggle between local spaces
     print('Creating IK Swap Spaces For...')
     SpaceSwapping.CreateSpaceSet((rName, 'Transform_Ctrl', 'CoG_Ctrl', 'L_Clav_Ctrl'), 'L_Hand_IK_Ctrl')
     print('L_Arm')
@@ -593,17 +608,19 @@ def SpaceSwapIK():
     SpaceSwapping.AddInBetweenSpaceSet('Pelvis_Ctrl', 'IK_Torso_Top_Ctrl', 'IK_Torso_Mid_Ctrl')
 
 
-def IKLimbStretch():
+def IKLimbStretch():  # add stretch capabilities to IK limbs and spine
     for prefix in ('L_', 'R_'):
         if prefix == 'R_':
             mirrored = 1
         else:
             mirrored = 0
+        # Arm
         print('Stretching %sArm' % prefix)
         Stretch.CreateIKStretch(prefix + 'Arm_01_Jnt_IK', prefix + 'Clav_Ctrl', prefix + 'Hand_IK_Ctrl', 3, mirrored, 1)
         cmds.connectAttr('Transform_Ctrl.Master_Scale', prefix + 'Hand_IKMaster_Scalar_MD.input2X')
         cmds.parent(prefix + 'Arm_01_Jnt_IK_baseStretch_Loc', 'Stretch_Locators')
         cmds.parent(prefix + 'Arm_01_Jnt_IK_endStretch_Loc', 'Stretch_Locators')
+        # Leg
         print('Stretching %sLeg' % prefix)
         Stretch.CreateIKStretchNumJoints(prefix + 'Leg_01_Jnt_IK', 3, 'Pelvis_Jnt', prefix + 'Leg_IK_Ctrl', 3, mirrored,
                                          1)
@@ -614,7 +631,7 @@ def IKLimbStretch():
     cmds.connectAttr('Transform_Ctrl.Master_Scale', 'IK_Torso_TopMasterScale_Stretch_Offset.input2X')
 
 
-def TwistJoints():
+def TwistJoints():  # adds assistive twist joints to limbs (this will aid the deformation of the ribbons)
     print('Implementing twist joints...')
     for prefix in ('L_', 'R_'):
         if prefix == 'L_':
@@ -632,6 +649,7 @@ def TwistJoints():
                                          rigHeight * .08, zDir, 1)
         TwistRollJoints.CreateShoulderTwistJoint(prefix + 'Hip', 1, prefix + 'Leg_01_Jnt', prefix + 'Leg_02_Jnt', 3,
                                                  rigHeight * .1, zDir, 0)
+        # organization
         cmds.parent(prefix + 'Shoulder_Master_Grp', 'Twist_Systems')
         cmds.parent(prefix + 'Arm_Twist_Loc_Grp_Lower', 'Twist_Systems')
         cmds.parent(prefix + 'Hip_Master_Grp', 'Twist_Systems')
@@ -646,6 +664,7 @@ def RibbonJoints():
         if prefix == 'R_':
             invertChain = 1
         for limbName in ('Arm', 'Leg'):
+            # Create attributes for ribbon controls
             cmds.addAttr(prefix + limbName + '_IKFK_Switch_Ctrl', ln='Flexible_Controls', at='double', min=0, max=1,
                          dv=0, k=1)
             cmds.addAttr(prefix + limbName + '_IKFK_Switch_Ctrl', at='enum', nn='____________',
@@ -663,6 +682,7 @@ def RibbonJoints():
             cmds.addAttr(prefix + limbName + '_IKFK_Switch_Ctrl', at='enum', nn='____________',
                          ln='RibbonTwistDivider', en='Twist', k=1)
             cmds.addAttr(prefix + limbName + '_IKFK_Switch_Ctrl', ln='Twist_Amount', at='double', dv=0, k=1)
+        # Arm ribbon
         thisRibbon = Ribbons.CreateCustomRibbon(prefix + 'Arm', rigHeight * .3,
                                                 3,
                                                 2,
@@ -676,6 +696,7 @@ def RibbonJoints():
         cmds.parent(prefix + 'Arm_Ribbon_Deformers', ribbonDeformers)
         cmds.parent(prefix + 'Arm_Ribbon_Ctrls_Grp', 'Arm_Ribbon_Ctrls')
         cmds.connectAttr(prefix + 'Arm_IKFK_Switch_Ctrl.Flexible_Controls', thisRibbon + '.Controls_Visibility')
+        # here is where the twist joints help the ribbon deformation
         cmds.connectAttr(prefix + 'Shoulder_Mid_Twist_Jnt_1.rotateX',
                          thisRibbon + '_Ctrl_Between_Jnt_1_Twist_Offset.rotateX')
         currentMDNode = cmds.createNode('multiplyDivide', n=thisRibbon + 'Forearm_Twist_MD')
@@ -696,6 +717,7 @@ def RibbonJoints():
         cmds.parent(prefix + 'Leg_Ribbon_Deformers', ribbonDeformers)
         cmds.parent(prefix + 'Leg_Ribbon_Ctrls_Grp', 'Leg_Ribbon_Ctrls')
         cmds.connectAttr(prefix + 'Leg_IKFK_Switch_Ctrl.Flexible_Controls', thisRibbon + '.Controls_Visibility')
+        # here is where the twist joints help the ribbon deformation
         cmds.connectAttr(prefix + 'Hip_Mid_Twist_Jnt_1.rotate.rotateX',
                          thisRibbon + '_Ctrl_Between_Jnt_1_Twist_Offset.rotate.rotateX')
         currentMDNode = cmds.createNode('multiplyDivide', n=thisRibbon + 'Shin_Twist_MD')
@@ -704,13 +726,13 @@ def RibbonJoints():
         cmds.connectAttr(currentMDNode + '.outputX', thisRibbon + '_Ctrl_Between_Jnt_2_Twist_Offset.rotateX')
         # connect deformer controls
         for limbName in ('Arm', 'Leg'):
-            for i in range(1, 8):  # IMPORTANT: HOOKS UP FOLLICLE JOINTS TO MASTER SCALE ATTRIBUTE
+            '''for i in range(1, 8):  # IMPORTANT: HOOKS UP FOLLICLE JOINTS TO MASTER SCALE ATTRIBUTE
                 for axis in ('X', 'Y', 'Z'):
                     cmds.connectAttr('Transform_Ctrl.Master_Scale',
                                      '%s%s_Follicle_%s_Jnt_Master_Scale_Offset.scale%s' % (prefix,
                                                                                            limbName,
                                                                                            str(i),
-                                                                                           axis))
+                                                                                           axis))'''
             for attribute in ('.Wave_Amplitude', '.Wave_Length', '.Wave_Distance', '.Lock_Ends', '.Twist_Amount'):
                 cmds.connectAttr(prefix + limbName + '_IKFK_Switch_Ctrl' + attribute,
                                  prefix + limbName + '_Ribbon' + attribute)
@@ -726,10 +748,11 @@ def RibbonJoints():
                                            0,
                                            'Y Out',
                                            1)
-    for i in range(1, 6):  # IMPORTANT: HOOKS UP FOLLICLE JOINTS TO MASTER SCALE ATTRIBUTE
+    '''for i in range(1, 6):  # IMPORTANT: HOOKS UP FOLLICLE JOINTS TO MASTER SCALE ATTRIBUTE
         for axis in ('X', 'Y', 'Z'):
             cmds.connectAttr('Transform_Ctrl.Master_Scale',
-                             'Spine_Follicle_%s_Jnt_Master_Scale_Offset.scale%s' % (str(i), axis))
+                             'Spine_Follicle_%s_Jnt_Master_Scale_Offset.scale%s' % (str(i), axis))'''
+    # add ribbon controls to the switch controls
     cmds.addAttr('Spine_IKFK_Switch_Ctrl', ln='Flexible_Controls', at='double', min=0, max=1,
                  dv=0, k=1)
     cmds.addAttr('Spine_IKFK_Switch_Ctrl', at='enum', nn='____________',
@@ -755,6 +778,7 @@ def RibbonJoints():
     cmds.parent(ribbonDeformers, 'Deformers')
     # HOOK UP RIBBON CONTROL SCALES
     for limbName in ('Arm', 'Leg'):
+        # ensures ribbon joints match the scale of the rig if rig scale changes
         for i in range(1, 4):
             linkWorldScale('L_' + limbName + '_01_Jnt', 'L_' + limbName + '_Follicle_%s_Limb_Offset' % str(i))
         for i in range(4, 7):
@@ -771,14 +795,13 @@ def RibbonJoints():
     linkWorldScale('Spine_05_Jnt', 'Spine_Follicle_5_Limb_Offset')
 
 
-def linkWorldScale(theParent, theChild):
+def linkWorldScale(theParent, theChild):  # connects the world scale of the joints to the scale of ribbon joints
     decomposeNode = cmds.createNode('decomposeMatrix', n=theChild + 'decomposeWorldScale')
     cmds.connectAttr(theParent + '.worldMatrix', decomposeNode + '.inputMatrix')
     cmds.connectAttr(decomposeNode + '.outputScale', theChild + '.s')
 
 
-def AddRibbonInflate():
-    print('WIP')
+def AddRibbonInflate():  # Creates the ability to 'inflate' parts of the ribbon limbs
     # ADD ATTRIBUTES TO LIMBS
     for controlName in ('_Ribbon_Ctrl_Jnt_1_Ctrl',
                         '_Ribbon_Ctrl_Jnt_2_Ctrl',
@@ -794,7 +817,7 @@ def AddRibbonInflate():
                                 '_Ribbon_Ctrl_Between_Jnt_1_Ctrl',
                                 '_Ribbon_Ctrl_Between_Jnt_2_Ctrl'):
                 cmds.addAttr(prefix + limbName + controlName, ln='Inflate', at='float', min=.1, dv=1, k=1)
-
+        # Connects certain controls to certain ribbon joints for inflation
         prefix = 'L_'
         for axis in ('x', 'y', 'z'): cmds.connectAttr(prefix + limbName + '_Ribbon_Ctrl_Jnt_1_Ctrl.Inflate',
                                                       prefix + limbName + '_Follicle_1_Jnt_Inflate_Offset.s' + axis)
@@ -838,7 +861,7 @@ def AddRibbonInflate():
                                                   limbName + '_Follicle_4_Jnt_Inflate_Offset.s' + axis)
 
 
-def FixSegmentScaleCompensate():
+def FixSegmentScaleCompensate():  # disables segment scale compensate on every joint in the scene
     jointList = cmds.ls(type='joint')
     for joint in jointList:
         cmds.setAttr('%s.segmentScaleCompensate' % joint, 0)
@@ -846,9 +869,11 @@ def FixSegmentScaleCompensate():
 
 def CleanUp():
     cmds.delete('Base_Locator', 'Top_Locator')
+    cmds.setAttr('Geometry_Layer.displayType', 2)
+    cmds.setAttr('Skeleton_Layer.visibility', 0)
 
 
-def ConnectSkinSkeleton():
+def ConnectSkinSkeleton():  # hook up the rig to drive the previously created export skeleton
     cmds.select(cl=1)
     theSkinJoints = cmds.listRelatives('CoG_Jnt_Skin', ad=1, type='joint')
     for joint in theSkinJoints:
@@ -856,13 +881,13 @@ def ConnectSkinSkeleton():
     cmds.sets(n='Skin and Export Joints')
     print('Hooking up skinning skeleton')
     for prefix in ('L_', 'R_'):
+        # elbows and knees directly drive the middle ribbon joints to aid deformation
         cmds.orientConstraint('%sArm_02_Jnt' % prefix,
                               '%sArm_Follicle_Jnt_4' % prefix, sk=('x', 'z'), w=.5)
         cmds.orientConstraint('%sLeg_02_Jnt' % prefix,
                               '%sLeg_Follicle_Jnt_4' % prefix, sk=('x', 'y'), w=.5)
 
-        for limbName in ('Arm', 'Leg'):  # creates a corrective offset for the elbows and knees
-
+        for limbName in ('Arm', 'Leg'):  # connects the ribbon limb joints to the skin skeleton
             for i in range(1, 8):
                 j = i
                 if prefix == 'R_':
@@ -892,7 +917,7 @@ def ConnectSkinSkeleton():
                     cmds.scaleConstraint(jntList[i], skinJntList[i], mo=0)
             cmds.parentConstraint(prefix + 'Clav_Jnt', prefix + 'Clav_Jnt_Skin')
             cmds.scaleConstraint(prefix + 'Clav_Jnt', prefix + 'Clav_Jnt_Skin')
-    for i in range(1, 5):
+    for i in range(1, 5):  # spine joints
         if i != 3:
             cmds.matchTransform('Spine_0%s_Jnt_Skin' % i, 'Spine_Follicle_Jnt_' + str(i))
         cmds.parentConstraint('Spine_Follicle_Jnt_' + str(i), 'Spine_0%s_Jnt_Skin' % i, mo=(i == 3))
@@ -912,6 +937,7 @@ def ConnectSkinSkeleton():
     # Bind the rest of the skeleton
 
 
+# this method was used to test the rig with a skeleton that was already skinned to a mesh
 def HookUpTestSkin():  # Doesn't work with translate, only rotate and scale
     newSkeleton = cmds.listRelatives('CoG_Jnt_Skin', ad=1, type='joint')
     newSkeleton.append('CoG_Jnt_Skin')
@@ -925,7 +951,7 @@ def HookUpTestSkin():  # Doesn't work with translate, only rotate and scale
     cmds.parent('CoG_Jnt_SkinFinal', 'Skeleton')
 
 
-InitializeHeirarchy()
+'''InitializeHeirarchy('Example')
 CreateHumanoidSkeletonTemplate()
 OrientSkeleton()
 MirrorJoints(True)
@@ -943,5 +969,5 @@ RibbonJoints()
 AddRibbonInflate()
 ConnectSkinSkeleton()
 CleanUp()
-HookUpTestSkin()
-FixSegmentScaleCompensate()
+# HookUpTestSkin()
+FixSegmentScaleCompensate()'''

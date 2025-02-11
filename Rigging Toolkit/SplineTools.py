@@ -1,6 +1,6 @@
 import maya.cmds as cmds
 
-
+# create a spline starting at a certain joint through ALL the joints down the chain
 def CreateSplineFromJoints(firstJoint, name, degree):
     jointList = cmds.listRelatives(firstJoint, ad=True)
     jointList.append(firstJoint)
@@ -17,7 +17,7 @@ def CreateSplineFromJoints(firstJoint, name, degree):
                                  pcv=0)
     return newCurve
 
-
+# create a spline starting at a certain joint through A CERTAIN NUMBER of joints down the chain
 def CreateSplineFromJoint(firstJoint, name, numJoints, degree=3):
     jointList = cmds.listRelatives(firstJoint, ad=1)
     jointList.append(firstJoint)

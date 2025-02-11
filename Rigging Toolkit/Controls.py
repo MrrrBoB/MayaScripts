@@ -1,6 +1,6 @@
 import maya.cmds as cmds
 
-
+# Creates a control on the target based off of its local rotation
 def createControl(target, controlName, radiusSize, ctrlColor, axis, constrainJoint):
     myControl = cmds.circle(radius=radiusSize, name=controlName + "_Ctrl")[0]
     controlShapeNode = cmds.listRelatives(myControl, shapes=True)[0]
@@ -21,7 +21,7 @@ def createControl(target, controlName, radiusSize, ctrlColor, axis, constrainJoi
         cmds.scaleConstraint(myControl, target)
     return myControl
 
-
+# Creates a control on the target based off of world rotation
 def createWorldRotationControl(target, controlName, radiusSize, ctrlColor, axis, constrainJoint, worldRotation):
     myControl = cmds.circle(radius=radiusSize, name=controlName + "_Ctrl")[0]
     controlShapeNode = cmds.listRelatives(myControl, shapes=True)[0]

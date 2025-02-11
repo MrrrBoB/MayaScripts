@@ -266,9 +266,11 @@ cmds.tabLayout(child5, e=1, tl=((miscChild1, 'Change Color'),  # Misc
 
 cmds.showWindow()
 
-                                                # Controls (CC) Commands
+
+# Controls (CC) Commands
 def TurnOffCheckBox(checkbox):
     cmds.checkBox(checkbox, e=1, v=0)
+
 
 # Control Creator Button - CC
 
@@ -315,13 +317,19 @@ def ControlButtonCommand():
 def ControlMirrorCommand():
     CC.MirrorControls()
 
-                                                # Broken FK Command
+    # Broken FK Command
+
 
 def CreateBrokenFKCommand():
     BFK.BrokenFK()
-                                                # Auto Rigger Commands
+    # Auto Rigger Commands
+
+
 def LayoutCommand():
-    AR.InitializeHeirarchy(cmds.textField(rigNameField, q=1, text=1))
+    rName = cmds.textField(rigNameField, q=1, text=1)
+    if rName == '':
+        rName = 'Undefined'
+    AR.InitializeHeirarchy(rName)
     AR.CreateHumanoidSkeletonTemplate()
 
 
@@ -336,40 +344,44 @@ def RigSimpleButton():
     cmds.progressBar(progressDisplay, e=1, pr=10)
     cmds.text(progressText, e=1, l='Creating IKFK Systems')
     AR.ImplementIKFK()
-    cmds.progressBar(progressDisplay, e=1, pr=10)
+    cmds.progressBar(progressDisplay, e=1, pr=20)
     cmds.text(progressText, e=1, l='Installing IK Controls...')
     AR.IKControls()
-    cmds.progressBar(progressDisplay, e=1, pr=20)
+    cmds.progressBar(progressDisplay, e=1, pr=30)
     cmds.text(progressText, e=1, l='Installing FK Controls')
     AR.FKControls()
-    cmds.progressBar(progressDisplay, e=1, pr=30)
+    cmds.progressBar(progressDisplay, e=1, pr=40)
     cmds.text(progressText, e=1, l='Installing Head and Neck Controls')
     AR.HeadCtrls()
-    cmds.progressBar(progressDisplay, e=1, pr=40)
+    cmds.progressBar(progressDisplay, e=1, pr=50)
     cmds.text(progressText, e=1, l='Hooking up Hands to IKFK systems')
     AR.HybridHands()
-    cmds.progressBar(progressDisplay, e=1, pr=50)
+    cmds.progressBar(progressDisplay, e=1, pr=60)
     cmds.text(progressText, e=1, l='Adding Major Transform Controls')
     AR.MetaControls()
-    cmds.progressBar(progressDisplay, e=1, pr=60)
+    cmds.progressBar(progressDisplay, e=1, pr=70)
     cmds.text(progressText, e=1, l='Creating IK Local Spaces')
     AR.SpaceSwapIK()
-    cmds.progressBar(progressDisplay, e=1, pr=70)
+    cmds.progressBar(progressDisplay, e=1, pr=80)
     cmds.text(progressText, e=1, l='Adding Stretch Capabilities')
     AR.IKLimbStretch()
-    cmds.progressBar(progressDisplay, e=1, pr=80)
+    cmds.progressBar(progressDisplay, e=1, pr=90)
     cmds.text(progressText, e=1, l='Adding Roll Joints')
     AR.TwistJoints()
-    cmds.progressBar(progressDisplay, e=1, pr=90)
+    cmds.progressBar(progressDisplay, e=1, pr=100)
     cmds.text(progressText, e=1, l='Installing Ribbon Joint Chains')
     AR.RibbonJoints()
-    cmds.progressBar(progressDisplay, e=1, pr=100)
+    cmds.progressBar(progressDisplay, e=1, pr=110)
     cmds.text(progressText, e=1, l='Hooking up the Skinning skeleton')
     AR.ConnectSkinSkeleton()
-    cmds.progressBar(progressDisplay, e=1, pr=110)
+    AR.AddRibbonInflate()
+    cmds.progressBar(progressDisplay, e=1, pr=120)
+    cmds.text(progressText, e=1, l='Hooking up the Skinning skeleton')
+    AR.ConnectSkinSkeleton()
+    cmds.progressBar(progressDisplay, e=1, pr=130)
     cmds.text(progressText, e=1, l='Disabling Segment Scale Compensate')
     AR.FixSegmentScaleCompensate()
-    cmds.progressBar(progressDisplay, e=1, pr=120)
+    cmds.progressBar(progressDisplay, e=1, pr=140)
     cmds.text(progressText, e=1, l='DONE!')
     cmds.deleteUI(ARProgressWindow)
 
@@ -377,8 +389,9 @@ def RigSimpleButton():
 def MirrorJointsButton():
     AR.MirrorJoints(0)
 
+    # IK Stretch Commands
 
-                                                # IK Stretch Commands
+
 def getStartJoint():
     selection = cmds.ls(sl=1)[0]
     print(selection)
@@ -401,12 +414,14 @@ def CreateStretchButtonCommand():
     chosenIKControl = cmds.textField(IKControlTextField, q=1, text=True)
     chosenMaxStretch = cmds.floatSliderGrp(maxStretchFloatSlider, q=True, v=True)
     needsReverseNode = cmds.checkBox(reverseScalarCheckbox, q=1, value=1)
-    IKStretchyLimbs.CreateIKStretch(chosenStartJoint, chosenBaseControl, chosenIKControl, chosenMaxStretch, needsReverseNode,0)
+    IKStretchyLimbs.CreateIKStretch(chosenStartJoint, chosenBaseControl, chosenIKControl, chosenMaxStretch,
+                                    needsReverseNode, 0)
 
-                                                # BlendShape Controller
+    # BlendShape Controller
+
+    # Reverse Foot Commands
 
 
-                                                # Reverse Foot Commands
 def LocatorButtonCmd():
     RF.CreateLocators(cmds.textField(reverseFootPrefixField, q=1, text=1),
                       cmds.floatField(reverseFootControlSizeField, q=1, v=1))
@@ -416,7 +431,8 @@ def CreateReverseFootSystem():
     RF.CreateReverseFootSystem(cmds.textField(reverseFootPrefixField, q=1, text=1),
                                cmds.floatField(reverseFootControlSizeField, q=1, v=1))
 
-                                                # Twist Joints
+    # Twist Joints
+
 
 def twistButtonCommand():
     numJ = cmds.intField(numJField, q=1, v=1)
@@ -451,7 +467,7 @@ def changeColorButtonCommand():
     chosenIndex = cmds.colorIndexSliderGrp(customColorSlider, q=1, value=1)
     ColorChanger.changeColor(cmds.ls(sl=1), chosenIndex)
 
-                                                # Segment Scale Compensate
+    # Segment Scale Compensate
 
 
 def RenameButtonCommand():
@@ -540,7 +556,8 @@ def CreateProgressWindow():
         cmds.deleteUI("ARProgressWindow")
     cmds.showWindow(ARProgressWindow)
 
-ARProgressWindow =cmds.window(widthHeight = (300,100), title='Building your rig...')
+
+ARProgressWindow = cmds.window(widthHeight=(300, 100), title='Building your rig...')
 cmds.columnLayout(cal='center', adj=1, rowSpacing=15)
-progressDisplay = cmds.progressBar(min=0, max=130, width=250, height=50)
+progressDisplay = cmds.progressBar(min=0, max=150, width=250, height=50)
 progressText = cmds.text(l='Setting Up')

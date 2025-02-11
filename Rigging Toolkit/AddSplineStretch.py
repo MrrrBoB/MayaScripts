@@ -28,6 +28,9 @@ reverseScalarCheckBox = cmds.checkBox(label='Negative Scalar Node (Use for mirro
 cmds.button(label='Add stretch', command='CreateStretchButtonCommand()')
 
 
+#createStretchySplineWindow()
+
+
 def getStartJoint():
     selection = cmds.ls(sl=1)[0]
     cmds.textField(firstJointTextField, e=True, text=selection)
